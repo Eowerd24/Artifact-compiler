@@ -1,0 +1,13 @@
+[
+  {
+    "uuid": "conv-artifacts-1",
+    "name": "Conversation with an artifact",
+    "chat_messages": [
+      {"uuid": "m1", "sender": "human", "text": "Write a small html page.",
+       "created_at": "2026-07-10T21:00:00.000000Z"},
+      {"uuid": "m2", "sender": "assistant", "text": "Here you go.",
+       "created_at": "2026-07-10T21:00:05.000000Z",
+       "artifacts": [{"identifier": "art-1", "title": "index.html", "type": "text/html"}]}
+    ]
+  }
+]

@@ -106,3 +106,16 @@ def test_empty_fence():
 def test_fences_seen_invariant_holds_for_mixed_document():
     r = extract(load("transcript-forge.md"), source="t", all_revisions=True)
     assert r.stats["fences_seen"] == len(r.blocks) + len(r.skipped)
+
+
+def test_extractor_contains_no_importer_specific_logic():
+    """Architectural boundary check: the extractor only ever sees rendered
+    canonical markdown text. It must never grow a branch for a specific
+    import source (ChatGPT, Claude, ...) — that would violate the
+    importer/extractor separation the whole compiler design depends on."""
+    import soloctl.compiler.extract as extract_module
+
+    source = Path(extract_module.__file__).read_text(encoding="utf-8")
+    lowered = source.lower()
+    for forbidden in ("chatgpt", "claude", "mapping", "current_node", "chat_messages"):
+        assert forbidden not in lowered, f"extractor references {forbidden!r}"

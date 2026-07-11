@@ -1,0 +1,9 @@
+[
+  {
+    "title": "No current_node",
+    "conversation_id": "conv-missing-cn-1",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": []}
+    }
+  }
+]

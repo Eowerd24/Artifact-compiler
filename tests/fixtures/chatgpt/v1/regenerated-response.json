@@ -1,0 +1,35 @@
+[
+  {
+    "title": "Regenerated example",
+    "conversation_id": "conv-regen-1",
+    "current_node": "n2b",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1"]},
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "m1", "author": {"role": "user"}, "create_time": 1751920000.0,
+          "content": {"content_type": "text", "parts": ["Write a haiku about the sea."]}
+        },
+        "parent": "n0", "children": ["n2a", "n2b"]
+      },
+      "n2a": {
+        "id": "n2a",
+        "message": {
+          "id": "m2a", "author": {"role": "assistant"}, "create_time": 1751920001.0,
+          "content": {"content_type": "text", "parts": ["Old draft haiku (discarded)."]}
+        },
+        "parent": "n1", "children": []
+      },
+      "n2b": {
+        "id": "n2b",
+        "message": {
+          "id": "m2b", "author": {"role": "assistant"}, "create_time": 1751920002.0,
+          "content": {"content_type": "text",
+                      "parts": ["Waves kiss the cold shore / Salt wind hums an old refrain / Moonlight keeps the tide."]}
+        },
+        "parent": "n1", "children": []
+      }
+    }
+  }
+]

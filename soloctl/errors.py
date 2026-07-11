@@ -36,11 +36,23 @@ class ImporterNotFoundError(ImporterError):
 
 
 class AmbiguousImporterError(ImporterError):
-    """More than one importer reported the same top confidence for an input."""
+    """More than one importer reported the same top confidence for an input,
+    or more than one conversation within an input matched a selector."""
 
 
 class UnsupportedInputError(ImporterError):
     """No registered importer recognized the input."""
+
+
+class ImporterSchemaError(ImporterError):
+    """An importer recognized the input format but a mandatory structure
+    was missing, the wrong type, or otherwise did not match the schema this
+    adapter version understands."""
+
+
+class ConversationNotFoundError(ImporterError):
+    """--conversation named neither an id, an exact title, nor an
+    unambiguous title substring present in the input."""
 
 
 class SecretDetected(SoloctlError):

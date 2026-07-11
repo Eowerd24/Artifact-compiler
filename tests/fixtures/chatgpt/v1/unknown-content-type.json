@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Unknown content type",
+    "conversation_id": "conv-unknown-ct-1",
+    "current_node": "n1",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1"]},
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "m1", "author": {"role": "assistant"}, "create_time": 1751920000.0,
+          "content": {"content_type": "image_asset_pointer", "asset_pointer": "file-service://abc"}
+        },
+        "parent": "n0", "children": []
+      }
+    }
+  }
+]

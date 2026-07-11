@@ -1,18 +1,26 @@
-"""Shared secret-scrub policy.
+"""Shared secret-scrub policy, plus a minimal append-only event writer.
 
-Adapted from the vendored soloctl-0.1.0 ledger module: this keeps only the
+Adapted from the vendored soloctl-0.1.0 ledger module: this keeps the
 scrub-pattern loading, whole-text secret scanning, and log-time redaction
-that the extractor and the import command both need today. The append-only
-JSONL audit event writer (ULID ids, actor/action/target envelope) from the
-0.1.0 archive is intentionally not carried over yet — that belongs to the
-ledger-and-auditability work package, not this one.
+that the extractor and the import command both need. append_event() is a
+deliberately small JSONL appender for the one event WP2 needs
+(transcript.import) — it is not the full ULID/actor/action/target audit
+envelope from the 0.1.0 archive. That richer schema (event types for
+compile/approve/verify/revoke/tag/collection, command invocation ids,
+before/after state) is Phase 20 (ledger & auditability) work and should
+replace this once that work package is scoped, not be grown here
+incrementally.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+EVENT_SCHEMA_VERSION = 1
 
 # --------------------------------------------------------------------------
 # Scrub patterns: refusal (extractor, import) and redaction (future logging)
@@ -129,3 +137,31 @@ def scrub_obj(obj: Any,
     if isinstance(obj, (list, tuple)):
         return [scrub_obj(v, patterns) for v in obj]
     return obj
+
+
+# --------------------------------------------------------------------------
+# Minimal append-only event writer (see module docstring for scope).
+# --------------------------------------------------------------------------
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+
+
+def append_event(events_path: str | os.PathLike[str], event: dict[str, Any]) -> None:
+    """Append one JSON object as a line to an append-only events.jsonl.
+    Never logs artifact bodies or credentials — callers must only pass
+    non-secret metadata (paths, ids, counts, labels), never file content.
+
+    A single write() to an O_APPEND fd is what keeps small concurrent
+    appends from interleaving on local POSIX filesystems; this module
+    doesn't need the vendored writer's oversize-entry fallback because
+    these events are small, fixed-shape metadata, not arbitrary payloads.
+    """
+    path = Path(events_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
+    data = line.encode("utf-8")
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o640)
+    try:
+        os.write(fd, data)
+    finally:
+        os.close(fd)

@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Never sent",
+    "conversation_id": "conv-empty-1",
+    "current_node": null,
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": []}
+    }
+  }
+]

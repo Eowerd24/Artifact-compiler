@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Edited message example",
+    "conversation_id": "conv-edit-1",
+    "current_node": "n2b",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1a", "n1b"]},
+      "n1a": {
+        "id": "n1a",
+        "message": {
+          "id": "m1a", "author": {"role": "user"}, "create_time": 1751920000.0,
+          "content": {"content_type": "text", "parts": ["How do I delete a file?"]}
+        },
+        "parent": "n0", "children": ["n2a"]
+      },
+      "n2a": {
+        "id": "n2a",
+        "message": {
+          "id": "m2a", "author": {"role": "assistant"}, "create_time": 1751920001.0,
+          "content": {"content_type": "text", "parts": ["Use `rm filename`."]}
+        },
+        "parent": "n1a", "children": []
+      },
+      "n1b": {
+        "id": "n1b",
+        "message": {
+          "id": "m1b", "author": {"role": "user"}, "create_time": 1751920002.0,
+          "content": {"content_type": "text", "parts": ["How do I permanently shred a file?"]}
+        },
+        "parent": "n0", "children": ["n2b"]
+      },
+      "n2b": {
+        "id": "n2b",
+        "message": {
+          "id": "m2b", "author": {"role": "assistant"}, "create_time": 1751920003.0,
+          "content": {"content_type": "text", "parts": ["Use `shred -u filename`."]}
+        },
+        "parent": "n1b", "children": []
+      }
+    }
+  }
+]

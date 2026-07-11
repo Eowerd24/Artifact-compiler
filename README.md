@@ -1,16 +1,22 @@
-# soloctl — Artifact Compiler backend (Work Package 1)
+# soloctl — Artifact Compiler backend (Work Packages 1-2)
 
 Local-first backend that imports chat transcripts, extracts reusable
 artifacts, and (in later work packages) emits them into a filesystem
 library with draft/approved/verified states. Single operator, no database,
 no frontend, no network calls.
 
-This cut (Work Package 1) delivers: package scaffolding, configuration
-loading, filesystem library initialization, the canonical Transcript IR
-with its renderer/parser, the importer protocol/registry, a Markdown
-passthrough importer, and the stabilized extractor. It does **not** emit
-compiled artifacts, run verification/approval, or parse ChatGPT/Claude
-exports — those are later work packages.
+Work Package 1 delivered: package scaffolding, configuration loading,
+filesystem library initialization, the canonical Transcript IR with its
+renderer/parser, the importer protocol/registry, a Markdown passthrough
+importer, and the stabilized extractor.
+
+Work Package 2 adds: ChatGPT (`chatgpt-v1`) and Claude (`claude-v1`)
+import adapters, conversation listing/selection (`--list`,
+`--conversation`), and a `transcript.import` ledger event appended to
+`library/events.jsonl` on every real import (success or secret refusal).
+
+Still **not** implemented: emitters, compiled artifacts, verification,
+approval, tags, or collections — those are later work packages.
 
 ## Installation
 
@@ -49,25 +55,44 @@ resolving a path outside it raises `PathEscapesLibraryError`.
 
 ## `soloctl import`
 
-Imports a markdown file (plain, or an already-canonical transcript) as a
-canonical transcript under `library/transcripts/YYYY/MM/<slug>.md`.
+Imports a markdown file, ChatGPT export, or Claude export as a canonical
+transcript under `library/transcripts/YYYY/MM/<slug>.md`.
 
 ```bash
 soloctl import chat.md --library ./library
 soloctl import chat.md --library ./library --title "Forge provisioning"
 soloctl import chat.md --library ./library --dry-run
 soloctl import chat.md --library ./library --adapter markdown-v1
+
+# ChatGPT / Claude exports (a conversations.json file, a directory
+# containing one, or a .zip archive containing one)
+soloctl import export.zip --library ./library --list
+soloctl import export.zip --library ./library --conversation "forge prov"
+soloctl import export.zip --library ./library --conversation conv-abc123 --dry-run
 ```
 
 - Plain markdown becomes one anonymous assistant turn.
 - An existing canonical transcript is recognized and re-saved with its
   original `source`/`adapter`/`conversation_id` intact (passthrough).
+- ChatGPT exports are tree-shaped (`mapping` + `current_node`): only the
+  active conversation path is imported. Edited messages and regenerated
+  responses on abandoned branches never appear.
+- Claude exports are a flat `chat_messages` list: no branches to resolve.
+- `--conversation <id-or-title>` selects one conversation out of an export
+  containing several: exact id match, then exact title match, then an
+  unambiguous case-insensitive title substring. A tie at any stage is
+  rejected rather than guessed.
+- `--list` prints every conversation found (id, turn count, exported-at,
+  title) and exits without importing anything.
 - The rendered transcript is secret-scanned before anything is written; a
   match refuses the entire import (exit code 2), nothing is saved.
 - `--dry-run` prints the proposed destination and turn count; it never
-  writes.
+  writes, and never appends a ledger event.
 - Filenames never collide silently: a second import with the same title
   gets `-2`, `-3`, ... appended.
+- Every real (non-dry-run) import attempt appends one `transcript.import`
+  event to `library/events.jsonl` — `"result": "ok"` on success,
+  `"result": "refused"` if a secret was found.
 
 ## Canonical transcript format
 
@@ -104,6 +129,8 @@ content — including fenced code blocks — is preserved exactly.
 python3 -m pytest tests/ -v
 ```
 
-45 tests across configuration, library initialization, transcript
-render/parse round-tripping, the markdown importer, and extractor
-regression (converted from the original `selftest.py` bare-assert suite).
+86 tests across configuration, library initialization, transcript
+render/parse round-tripping, the markdown/ChatGPT/Claude importers, the
+importer registry, and extractor regression (converted from the original
+`selftest.py` bare-assert suite). Versioned fixtures live under
+`tests/fixtures/{chatgpt,claude}/v1/`.

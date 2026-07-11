@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Tool call example",
+    "conversation_id": "conv-tool-1",
+    "current_node": "n3",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1"]},
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "m1", "author": {"role": "user"}, "create_time": 1751920000.0,
+          "content": {"content_type": "text", "parts": ["What's the weather in Oslo?"]}
+        },
+        "parent": "n0", "children": ["n2"]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "m2", "author": {"role": "tool"}, "create_time": 1751920001.0,
+          "content": {"content_type": "text", "parts": ["{\"temp_c\": 14, \"condition\": \"cloudy\"}"]}
+        },
+        "parent": "n1", "children": ["n3"]
+      },
+      "n3": {
+        "id": "n3",
+        "message": {
+          "id": "m3", "author": {"role": "assistant"}, "create_time": 1751920002.0,
+          "content": {"content_type": "text", "parts": ["It's 14°C and cloudy in Oslo."]}
+        },
+        "parent": "n2", "children": []
+      }
+    }
+  }
+]

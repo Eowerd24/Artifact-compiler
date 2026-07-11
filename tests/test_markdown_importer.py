@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 
 from soloctl.cli import perform_import
 from soloctl.config import SoloctlConfig
-from soloctl.errors import ImporterError
+from soloctl.errors import ImporterError, SecretDetected
 from soloctl.importers import build_default_registry
 from soloctl.importers.markdown import MarkdownImporter
 from soloctl.library.repository import init_library
@@ -140,3 +141,58 @@ def test_explicit_adapter_override(tmp_path: Path):
     registry = build_default_registry()
     outcome = perform_import(config, src, adapter="markdown-v1", dry_run=True, registry=registry)
     assert outcome.adapter == "markdown-v1"
+
+
+def _read_events(config: SoloctlConfig) -> list[dict]:
+    events_path = config.library_root / "events.jsonl"
+    lines = [l for l in events_path.read_text(encoding="utf-8").splitlines() if l]
+    return [json.loads(l) for l in lines]
+
+
+def test_real_import_appends_a_transcript_import_event(tmp_path: Path):
+    src = tmp_path / "plain.md"
+    src.write_text(PLAIN, encoding="utf-8")
+    config = _config(tmp_path)
+
+    outcome = perform_import(config, src, dry_run=False)
+
+    events = _read_events(config)
+    assert len(events) == 1
+    event = events[0]
+    assert event["event"] == "transcript.import"
+    assert event["result"] == "ok"
+    assert event["dry_run"] is False
+    assert event["adapter"] == "markdown-v1"
+    assert event["turns"] == outcome.turn_count
+    assert event["detail"] == str(outcome.written.relative_path)
+
+
+def test_dry_run_does_not_append_a_success_event(tmp_path: Path):
+    src = tmp_path / "plain.md"
+    src.write_text(PLAIN, encoding="utf-8")
+    config = _config(tmp_path)
+
+    perform_import(config, src, dry_run=True)
+
+    events_path = config.library_root / "events.jsonl"
+    assert events_path.read_text(encoding="utf-8") == ""
+
+
+def test_secret_refusal_appends_a_refused_event(tmp_path: Path):
+    src = tmp_path / "secret.md"
+    src.write_text(
+        "```bash\nexport GITHUB_TOKEN=ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n```\n",
+        encoding="utf-8",
+    )
+    config = _config(tmp_path)
+
+    with pytest.raises(SecretDetected):
+        perform_import(config, src, dry_run=False)
+
+    events = _read_events(config)
+    assert len(events) == 1
+    assert events[0]["result"] == "refused"
+    assert events[0]["detail"] == "secret:gh-token"
+
+    # Refusal must not have written a transcript.
+    assert list((config.library_root / "transcripts").rglob("*.md")) == []

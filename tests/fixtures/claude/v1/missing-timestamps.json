@@ -1,0 +1,10 @@
+[
+  {
+    "uuid": "conv-notime-1",
+    "name": "No timestamps",
+    "chat_messages": [
+      {"uuid": "m1", "sender": "human", "text": "Hi"},
+      {"uuid": "m2", "sender": "assistant", "text": "Hello!"}
+    ]
+  }
+]

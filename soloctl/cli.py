@@ -16,10 +16,12 @@ from . import __version__
 from .config import SoloctlConfig, load_config
 from .errors import SecretDetected, SoloctlError
 from .importers import build_default_registry
+from .importers.base import ConversationSummary
 from .importers.registry import ImporterRegistry
-from .ledger import load_scrub_patterns, scan_text_for_secret
+from .ledger import EVENT_SCHEMA_VERSION, append_event, load_scrub_patterns, now_iso, scan_text_for_secret
 from .library.paths import LibraryPaths
 from .library.repository import InitResult, init_library
+from .transcript.models import Transcript
 from .transcript.render import render_transcript
 from .transcript.storage import SavedTranscript, preview_transcript_destination, save_transcript
 
@@ -47,29 +49,55 @@ class ImportOutcome:
     turn_count: int
 
 
+def perform_list(config: SoloctlConfig, path: Path, *,
+                  adapter: str | None = None,
+                  registry: ImporterRegistry | None = None) -> tuple[ConversationSummary, ...]:
+    registry = registry or build_default_registry()
+    importer = registry.resolve(path, adapter=adapter)
+    return importer.list_conversations(path)
+
+
+def _log_import_event(paths: LibraryPaths, source_path: Path, transcript: Transcript, *,
+                       result: str, detail: str, dry_run: bool) -> None:
+    append_event(paths.events_file, {
+        "schema": EVENT_SCHEMA_VERSION,
+        "event": "transcript.import",
+        "ts": now_iso(),
+        "result": result,
+        "detail": detail,
+        "source_path": str(source_path),
+        "adapter": transcript.adapter,
+        "conversation_id": transcript.conversation_id,
+        "turns": len(transcript.turns),
+        "dry_run": dry_run,
+    })
+
+
 def perform_import(config: SoloctlConfig, path: Path, *,
                     adapter: str | None = None,
+                    conversation_id: str | None = None,
                     title: str | None = None,
                     dry_run: bool = False,
                     registry: ImporterRegistry | None = None) -> ImportOutcome:
     registry = registry or build_default_registry()
     importer = registry.resolve(path, adapter=adapter)
-    transcript = importer.parse(path)
+    transcript = importer.parse(path, conversation_id)
     if title is not None:
         transcript = replace(transcript, title=title)
 
     rendered = render_transcript(transcript)
+    paths = LibraryPaths(config.library_root)
     scrub_patterns = load_scrub_patterns(config.library_root / SCRUB_PATTERNS_FILENAME)
     hit = scan_text_for_secret(rendered, scrub_patterns)
     if hit:
         label, line = hit
+        _log_import_event(paths, path, transcript, result="refused",
+                          detail=f"secret:{label}", dry_run=dry_run)
         # `line` is an offset into the rendered canonical transcript (front
         # matter shifts it), not the original file — SecretDetected.path
         # says so explicitly rather than implying a false-precision match
         # against the source file's own line numbers.
         raise SecretDetected(label, line, f"rendered transcript of {path}")
-
-    paths = LibraryPaths(config.library_root)
 
     if dry_run:
         proposed = preview_transcript_destination(paths, transcript)
@@ -79,6 +107,8 @@ def perform_import(config: SoloctlConfig, path: Path, *,
             adapter=transcript.adapter, turn_count=len(transcript.turns))
 
     saved = save_transcript(paths, transcript)
+    _log_import_event(paths, path, transcript, result="ok",
+                      detail=str(saved.relative_path), dry_run=dry_run)
     return ImportOutcome(
         dry_run=False, written=saved, proposed_destination=None,
         title=transcript.title, source=transcript.source,
@@ -108,6 +138,17 @@ def _render_init(result: InitResult) -> None:
             print(f"  created {f.relative_to(result.library_root)}")
     if not result.created_directories and not result.created_files:
         print("  nothing to do (already up to date)")
+
+
+def _render_list(path: Path, summaries: tuple[ConversationSummary, ...]) -> None:
+    print(f"soloctl import — conversations in {path}:")
+    if not summaries:
+        print("  (none)")
+        return
+    for s in summaries:
+        exported = s.exported_at or "-"
+        print(f"  {s.conversation_id:<24} {s.turn_count:>3} turns  "
+              f"{exported:<26} {s.title}")
 
 
 def _render_import(outcome: ImportOutcome) -> None:
@@ -146,16 +187,25 @@ def init(
 
 @app.command(name="import")
 def import_(
-    path: Path = typer.Argument(..., help="Markdown transcript to import"),
-    adapter: str = typer.Option(None, "--adapter", help="Explicit importer override, e.g. markdown-v1"),
+    path: Path = typer.Argument(..., help="Markdown file or chat export to import"),
+    adapter: str = typer.Option(None, "--adapter", help="Explicit importer override, e.g. chatgpt-v1"),
+    conversation: str = typer.Option(
+        None, "--conversation", "--conv",
+        help="Select a conversation by id, exact title, or unambiguous title substring"),
     title: str = typer.Option(None, "--title", help="Override the transcript title"),
+    list_only: bool = typer.Option(False, "--list", help="List conversations found in path and exit"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without writing"),
     library: Path = typer.Option(None, "--library", help="Library root directory"),
 ) -> None:
     """Import a transcript into the library as canonical markdown."""
     config = _resolve_config(library)
     try:
-        outcome = perform_import(config, path, adapter=adapter, title=title, dry_run=dry_run)
+        if list_only:
+            summaries = perform_list(config, path, adapter=adapter)
+            _render_list(path, summaries)
+            return
+        outcome = perform_import(config, path, adapter=adapter, title=title,
+                                 conversation_id=conversation, dry_run=dry_run)
     except SecretDetected as exc:
         typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
         typer.secho("Nothing was written. Remove the credential from the "

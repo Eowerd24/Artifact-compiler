@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Weekly sync",
+    "conversation_id": "conv-dup-1",
+    "current_node": "n1",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1"]},
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "m1", "author": {"role": "user"}, "create_time": 1751920000.0,
+          "content": {"content_type": "text", "parts": ["First one"]}
+        },
+        "parent": "n0", "children": []
+      }
+    }
+  },
+  {
+    "title": "Weekly sync",
+    "conversation_id": "conv-dup-2",
+    "current_node": "n1",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1"]},
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "m1", "author": {"role": "user"}, "create_time": 1751920000.0,
+          "content": {"content_type": "text", "parts": ["Second one"]}
+        },
+        "parent": "n0", "children": []
+      }
+    }
+  }
+]

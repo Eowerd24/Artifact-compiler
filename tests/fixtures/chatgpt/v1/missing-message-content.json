@@ -1,0 +1,25 @@
+[
+  {
+    "title": "Missing content",
+    "conversation_id": "conv-missing-content-1",
+    "current_node": "n2",
+    "mapping": {
+      "n0": {"id": "n0", "message": null, "parent": null, "children": ["n1"]},
+      "n1": {
+        "id": "n1",
+        "message": {
+          "id": "m1", "author": {"role": "user"}, "create_time": 1751920000.0,
+          "content": {"content_type": "text", "parts": ["Hello"]}
+        },
+        "parent": "n0", "children": ["n2"]
+      },
+      "n2": {
+        "id": "n2",
+        "message": {
+          "id": "m2", "author": {"role": "assistant"}, "create_time": 1751920001.0
+        },
+        "parent": "n1", "children": []
+      }
+    }
+  }
+]

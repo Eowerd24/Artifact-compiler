@@ -1,0 +1,4 @@
+{
+  "name": "This should be an array, not an object",
+  "uuid": "conv-malformed-1"
+}
