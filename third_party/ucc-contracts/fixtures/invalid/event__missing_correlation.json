@@ -1,0 +1,25 @@
+{
+  "schema": "ucc.event",
+  "schema_version": 1,
+  "event_id": "evt_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "event_type": "execution.completed",
+  "occurred_at": "2026-07-12T12:00:00.000Z",
+  "recorded_at": "2026-07-12T12:00:00.000Z",
+  "producer": {
+    "module_id": "vm-factory",
+    "instance_id": "act_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+  },
+  "actor": {
+    "kind": "module",
+    "id": "act_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+  },
+  "subject": {
+    "kind": "execution",
+    "id": "exec_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+  },
+  "operation_id": "op_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "request_id": "req_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "causation_id": "evt_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "producer_sequence": 184,
+  "payload": {}
+}

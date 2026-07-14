@@ -123,6 +123,16 @@ required `Transcript`/`Turn` field, with one documented normalization:
 per-turn content is stripped of leading/trailing blank lines. Internal
 content — including fenced code blocks — is preserved exactly.
 
+## UCC conformance
+
+Conforms to **ucc-contracts 0.1.0** (2026-07-13 snapshot), vendored at
+`third_party/ucc-contracts/` (schemas, lifecycle transition tables, ID/hash/path
+primitives — no domain code). `tests/contracts/` asserts this repo's own
+(de)serialization and validation matches the pinned contracts exactly;
+bumping the vendored copy is deliberate and version-gated, never silent.
+Every real import also dual-writes a `ucc.event` to `library/events/` alongside
+the legacy `transcript.import` ledger event in `library/events.jsonl`.
+
 ## Running tests
 
 ```bash

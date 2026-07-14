@@ -1,0 +1,41 @@
+{
+  "schema": "ucc.execution-request",
+  "schema_version": 1,
+  "request_id": "req_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "execution_id": "exec_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "assignment_id": "asn_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "node_id": "node_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "node_generation": 3,
+  "artifact_revision_id": "rev_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "artifact_content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "publication_id": "pub_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "entrypoint": "bin/inventory.sh",
+  "interpreter": [
+    "/usr/bin/env",
+    "bash"
+  ],
+  "args": [
+    "--output",
+    "outputs/inventory.json"
+  ],
+  "working_directory": "work",
+  "environment": {
+    "UCC_JOB_ID": "job_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+  },
+  "credential_lease_ids": [],
+  "timeout_seconds": 120,
+  "limits": {
+    "stdout_bytes": 1048576,
+    "stderr_bytes": 1048576,
+    "output_files": 100,
+    "output_bytes": 10485760
+  },
+  "expected_outputs": [
+    {
+      "path": "outputs/inventory.json",
+      "required": true
+    }
+  ],
+  "idempotency_key": "job_x:inventory:v1",
+  "correlation_id": "corr_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+}

@@ -1,0 +1,56 @@
+{
+  "machine": "execution",
+  "owner": "vm-factory",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_execution_transition",
+  "terminal_states": [
+    "completed"
+  ],
+  "transitions": [
+    {
+      "from": "accepted",
+      "to": "staging",
+      "actor": "vm-factory",
+      "precondition": "inputs pinned + validated",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-drive pre-start"
+    },
+    {
+      "from": "staging",
+      "to": "ready",
+      "actor": "vm-factory",
+      "precondition": "content hashes verified on node",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-drive pre-start"
+    },
+    {
+      "from": "ready",
+      "to": "running",
+      "actor": "vm-factory",
+      "precondition": "execution_started receipt",
+      "idempotent": false,
+      "terminal": false,
+      "recovery": "post-start: new exec_id on retry"
+    },
+    {
+      "from": "running",
+      "to": "finalizing",
+      "actor": "vm-factory",
+      "precondition": "process exit observed",
+      "idempotent": false,
+      "terminal": false,
+      "recovery": "reconcile"
+    },
+    {
+      "from": "finalizing",
+      "to": "completed",
+      "actor": "vm-factory",
+      "precondition": "result committed",
+      "idempotent": false,
+      "terminal": true,
+      "recovery": "reconcile; outcome may be unknown"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "ucc.artifact-content-manifest",
+  "schema_version": 1,
+  "artifact_id": "art_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "revision_id": "rev_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "entries": [
+    {
+      "path": "bin/inventory.sh",
+      "size": 812,
+      "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "executable": true,
+      "media_type": "text/x-shellscript"
+    }
+  ]
+}

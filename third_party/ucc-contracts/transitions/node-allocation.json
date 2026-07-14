@@ -1,0 +1,68 @@
+{
+  "machine": "node-allocation",
+  "owner": "vm-factory",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_allocation_transition",
+  "terminal_states": [
+    "refused",
+    "expired",
+    "lost",
+    "released"
+  ],
+  "transitions": [
+    {
+      "from": "reserved",
+      "to": "active",
+      "actor": "vm-factory",
+      "precondition": "execution accepted before TTL",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-query"
+    },
+    {
+      "from": "reserved",
+      "to": "refused",
+      "actor": "vm-factory",
+      "precondition": "refused at accept",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "terminal"
+    },
+    {
+      "from": "reserved",
+      "to": "expired",
+      "actor": "vm-factory",
+      "precondition": "reservation TTL elapsed",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "terminal; new attempt"
+    },
+    {
+      "from": "active",
+      "to": "releasing",
+      "actor": "vm-factory",
+      "precondition": "execution terminal",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "idempotent"
+    },
+    {
+      "from": "active",
+      "to": "lost",
+      "actor": "vm-factory",
+      "precondition": "node unreachable/ambiguous",
+      "idempotent": false,
+      "terminal": true,
+      "recovery": "reconcile; no auto replay"
+    },
+    {
+      "from": "releasing",
+      "to": "released",
+      "actor": "vm-factory",
+      "precondition": "release recorded",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "idempotent"
+    }
+  ]
+}

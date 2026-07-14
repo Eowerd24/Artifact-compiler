@@ -1,0 +1,75 @@
+{
+  "machine": "handback",
+  "owner": "vm-factory",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_handback_transition",
+  "terminal_states": [
+    "rejected",
+    "acknowledged"
+  ],
+  "transitions": [
+    {
+      "from": "candidate",
+      "to": "committed_on_node",
+      "actor": "ucc-node",
+      "precondition": "manifest written last + atomic rename",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "inspect receipts"
+    },
+    {
+      "from": "committed_on_node",
+      "to": "collecting",
+      "actor": "vm-factory",
+      "precondition": "download to host .partial",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "recollect"
+    },
+    {
+      "from": "collecting",
+      "to": "collected",
+      "actor": "vm-factory",
+      "precondition": "bytes on host",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "recollect"
+    },
+    {
+      "from": "collected",
+      "to": "validating",
+      "actor": "vm-factory",
+      "precondition": "path/type/size/hash checks",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "revalidate"
+    },
+    {
+      "from": "validating",
+      "to": "verified",
+      "actor": "vm-factory",
+      "precondition": "all checks pass",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "idempotent commit"
+    },
+    {
+      "from": "validating",
+      "to": "rejected",
+      "actor": "vm-factory",
+      "precondition": "unsafe path/link/special/hash",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "quarantine"
+    },
+    {
+      "from": "verified",
+      "to": "acknowledged",
+      "actor": "vm-factory",
+      "precondition": "ack sent to node",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "resend ack, never re-execute"
+    }
+  ]
+}

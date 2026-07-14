@@ -1,0 +1,20 @@
+{
+  "machine": "publication",
+  "owner": "artifact-compiler",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_publication_transition",
+  "terminal_states": [
+    "withdrawn"
+  ],
+  "transitions": [
+    {
+      "from": "published",
+      "to": "withdrawn",
+      "actor": "artifact-compiler",
+      "precondition": "operator withdraws",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "terminal; history preserved"
+    }
+  ]
+}

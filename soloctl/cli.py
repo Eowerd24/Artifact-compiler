@@ -24,6 +24,7 @@ from .library.repository import InitResult, init_library
 from .transcript.models import Transcript
 from .transcript.render import render_transcript
 from .transcript.storage import SavedTranscript, preview_transcript_destination, save_transcript
+from .ucc_events import emit_event
 
 app = typer.Typer(no_args_is_help=True, add_completion=False,
                   help="Local-first artifact compiler CLI.")
@@ -59,10 +60,7 @@ def perform_list(config: SoloctlConfig, path: Path, *,
 
 def _log_import_event(paths: LibraryPaths, source_path: Path, transcript: Transcript, *,
                        result: str, detail: str, dry_run: bool) -> None:
-    append_event(paths.events_file, {
-        "schema": EVENT_SCHEMA_VERSION,
-        "event": "transcript.import",
-        "ts": now_iso(),
+    payload = {
         "result": result,
         "detail": detail,
         "source_path": str(source_path),
@@ -70,7 +68,17 @@ def _log_import_event(paths: LibraryPaths, source_path: Path, transcript: Transc
         "conversation_id": transcript.conversation_id,
         "turns": len(transcript.turns),
         "dry_run": dry_run,
+    }
+    append_event(paths.events_file, {
+        "schema": EVENT_SCHEMA_VERSION,
+        "event": "transcript.import",
+        "ts": now_iso(),
+        **payload,
     })
+    # Dual-write (roadmap §4B "Shared IDs/envelopes"): the legacy ledger
+    # above stays the primary, unchanged read path; this is additive.
+    event_type = "transcript.import_completed" if result == "ok" else "transcript.import_refused"
+    emit_event(paths.ucc_events_file, event_type=event_type, payload=payload)
 
 
 def perform_import(config: SoloctlConfig, path: Path, *,

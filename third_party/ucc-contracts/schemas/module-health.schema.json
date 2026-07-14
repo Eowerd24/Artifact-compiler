@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/module-health.schema.json",
+  "title": "ucc.module-registration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "module_id", "display_name", "module_version",
+    "adapter_kind", "enabled", "supported_contract_versions", "capabilities",
+    "canonical_root", "health_timeout_seconds", "health"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.module-registration"},
+    "schema_version": {"type": "integer", "minimum": 1},
+    "module_id": {"type": "string", "enum": ["ucc", "artifact-compiler", "vm-factory", "ucc-node"]},
+    "display_name": {"type": "string"},
+    "module_version": {"type": "string"},
+    "adapter_kind": {"type": "string", "enum": ["in_process", "cli", "local_socket", "http"]},
+    "enabled": {"type": "boolean"},
+    "supported_contract_versions": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 1},
+    "capabilities": {"type": "array", "items": {"type": "string"}},
+    "canonical_root": {"type": "string"},
+    "health_timeout_seconds": {"type": "integer", "minimum": 1},
+    "health": {"type": "string", "enum": ["healthy", "degraded", "unavailable", "incompatible", "disabled"]}
+  }
+}

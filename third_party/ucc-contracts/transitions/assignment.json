@@ -1,0 +1,57 @@
+{
+  "machine": "assignment",
+  "owner": "ucc",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_assignment_transition",
+  "terminal_states": [
+    "refused",
+    "released"
+  ],
+  "transitions": [
+    {
+      "from": "requested",
+      "to": "accepted",
+      "actor": "vm-factory",
+      "precondition": "allocation reserved + validated",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-query allocation"
+    },
+    {
+      "from": "requested",
+      "to": "refused",
+      "actor": "vm-factory",
+      "precondition": "no eligible node / capability mismatch",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "new assignment"
+    },
+    {
+      "from": "accepted",
+      "to": "active",
+      "actor": "ucc",
+      "precondition": "execution requested",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-drive"
+    },
+    {
+      "from": "active",
+      "to": "releasing",
+      "actor": "ucc",
+      "precondition": "execution terminal or cancel",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "idempotent"
+    },
+    {
+      "from": "releasing",
+      "to": "released",
+      "actor": "vm-factory",
+      "precondition": "allocation released",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "idempotent"
+    }
+  ]
+}
