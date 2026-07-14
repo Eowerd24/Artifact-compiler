@@ -91,8 +91,12 @@ def perform_import(config: SoloctlConfig, path: Path, *,
     hit = scan_text_for_secret(rendered, scrub_patterns)
     if hit:
         label, line = hit
-        _log_import_event(paths, path, transcript, result="refused",
-                          detail=f"secret:{label}", dry_run=dry_run)
+        # Dry run performs no canonical mutation and appends no canonical audit
+        # event (locked Decision 1-of-2 §1.24; SPEC-001 §C.7). The refusal is
+        # still surfaced to the caller via SecretDetected below.
+        if not dry_run:
+            _log_import_event(paths, path, transcript, result="refused",
+                              detail=f"secret:{label}", dry_run=dry_run)
         # `line` is an offset into the rendered canonical transcript (front
         # matter shifts it), not the original file — SecretDetected.path
         # says so explicitly rather than implying a false-precision match
