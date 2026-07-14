@@ -14,7 +14,7 @@ import typer
 
 from . import __version__
 from .config import SoloctlConfig, load_config
-from .errors import SecretDetected, SoloctlError
+from .errors import IdempotencyConflict, SecretDetected, SoloctlError
 from .importers import build_default_registry
 from .importers.base import ConversationSummary
 from .importers.registry import ImporterRegistry
@@ -180,6 +180,16 @@ def _render_import(outcome: ImportOutcome) -> None:
     print(f"  wrote:   {outcome.written.relative_path}")
 
 
+def _render_import_result(result: dict) -> None:
+    """Renders the ucc.result dict returned by perform_import_idempotent's
+    real (non-dry, non-replay-passthrough) path — same information as
+    _render_import, different (envelope) source shape."""
+    print(f"soloctl import — {result['disposition']} (result {result['result_id']})")
+    print(f"  request:     {result['request_id']}")
+    print(f"  operation:   {result['operation_id']}")
+    print(f"  correlation: {result['correlation_id']}")
+
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
@@ -208,6 +218,11 @@ def import_(
     list_only: bool = typer.Option(False, "--list", help="List conversations found in path and exit"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without writing"),
     library: Path = typer.Option(None, "--library", help="Library root directory"),
+    idempotency_key: str = typer.Option(
+        None, "--idempotency-key",
+        help="Opt in to idempotent replay: repeating the same key+inputs returns the "
+             "stored result instead of re-importing; reusing the key with different "
+             "inputs refuses (exit 3). Omit for today's exactly-once-per-invocation behavior."),
 ) -> None:
     """Import a transcript into the library as canonical markdown."""
     config = _resolve_config(library)
@@ -216,17 +231,31 @@ def import_(
             summaries = perform_list(config, path, adapter=adapter)
             _render_list(path, summaries)
             return
-        outcome = perform_import(config, path, adapter=adapter, title=title,
-                                 conversation_id=conversation, dry_run=dry_run)
+        if idempotency_key:
+            from .idempotent_import import perform_import_idempotent
+            outcome = perform_import_idempotent(
+                config, path, idempotency_key=idempotency_key, adapter=adapter,
+                title=title, conversation_id=conversation, dry_run=dry_run)
+        else:
+            outcome = perform_import(config, path, adapter=adapter, title=title,
+                                     conversation_id=conversation, dry_run=dry_run)
     except SecretDetected as exc:
         typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
         typer.secho("Nothing was written. Remove the credential from the "
                     "source and re-run.", err=True)
         raise typer.Exit(2)
+    except IdempotencyConflict as exc:
+        typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
+        typer.secho("This --idempotency-key was already used with different "
+                    "inputs. Use a new key, or repeat the exact same inputs.", err=True)
+        raise typer.Exit(3)
     except SoloctlError as exc:
         typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
-    _render_import(outcome)
+    if isinstance(outcome, dict):
+        _render_import_result(outcome)
+    else:
+        _render_import(outcome)
 
 
 @app.command()

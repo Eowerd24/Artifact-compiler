@@ -22,6 +22,7 @@ VERIFICATION = "verification"
 EVENTS_FILE = "events.jsonl"
 UCC_EVENTS_DIR = "events"
 UCC_EVENTS_FILE = "artifact-compiler.jsonl"
+IDEMPOTENCY_DB = "idempotency.db"
 
 # Artifact-type subdirectories under drafts/ and approved/. Emitters land in
 # WP3/4; the directories exist from WP1 so init produces the full layout.
@@ -90,6 +91,12 @@ class LibraryPaths:
         dual-written alongside the legacy events_file during the transition
         (roadmap §4B "Shared IDs/envelopes")."""
         return self.resolve(UCC_EVENTS_DIR, UCC_EVENTS_FILE)
+
+    @property
+    def idempotency_db(self) -> Path:
+        """Idempotency/result store (M-b, D2) — canonical evidence, sibling
+        to events_file, not a disposable projection."""
+        return self.resolve(IDEMPOTENCY_DB)
 
     def required_directories(self) -> tuple[Path, ...]:
         dirs = [self.transcripts, self.artifacts]

@@ -66,3 +66,12 @@ class SecretDetected(SoloctlError):
         super().__init__(
             f"secret [{label}] at {path}:{line} — refusing entire input"
         )
+
+
+class IdempotencyConflict(SoloctlError):
+    """An idempotency_key was reused with a different request body (M-b,
+    D2). Carries the typed ucc.problem so callers can surface it directly."""
+
+    def __init__(self, problem: dict) -> None:
+        self.problem = problem
+        super().__init__(problem["message"])
