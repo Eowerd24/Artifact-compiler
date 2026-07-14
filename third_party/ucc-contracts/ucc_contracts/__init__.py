@@ -16,10 +16,18 @@ from .ids import (
 )
 from .schema import load_schema, validate_document, SchemaValidationError
 from .transitions import load_transitions, is_legal_transition, TransitionError
+from .idempotency import (
+    IdempotencyOutcome,
+    StoredIdempotencyRecord,
+    evaluate_idempotency,
+    idempotency_conflict_problem,
+)
 
 __all__ = [
     "ID_PREFIXES", "new_id", "is_valid_id", "parse_id",
     "is_valid_hash", "is_safe_relpath",
     "load_schema", "validate_document", "SchemaValidationError",
     "load_transitions", "is_legal_transition", "TransitionError",
+    "IdempotencyOutcome", "StoredIdempotencyRecord",
+    "evaluate_idempotency", "idempotency_conflict_problem",
 ]

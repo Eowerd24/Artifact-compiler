@@ -125,7 +125,7 @@ content — including fenced code blocks — is preserved exactly.
 
 ## UCC conformance
 
-Conforms to **ucc-contracts 0.1.0** (2026-07-13 snapshot), vendored at
+Conforms to **ucc-contracts v0.2.0** (git tag, ucc-contracts is now its own repo), vendored at
 `third_party/ucc-contracts/` (schemas, lifecycle transition tables, ID/hash/path
 primitives — no domain code). `tests/contracts/` asserts this repo's own
 (de)serialization and validation matches the pinned contracts exactly;

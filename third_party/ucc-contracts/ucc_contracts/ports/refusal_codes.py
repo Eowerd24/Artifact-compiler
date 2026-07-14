@@ -41,6 +41,7 @@ class RefusalCode(str, Enum):
     UNSAFE_HANDBACK_PATH = "unsafe_handback_path"
     EXECUTION_NOT_FOUND = "execution_not_found"
     ALLOCATION_NOT_FOUND = "allocation_not_found"
+    NODE_NOT_FOUND = "node_not_found"
 
 
 ARTIFACT_PORT_CODES = frozenset({
@@ -56,4 +57,5 @@ FACTORY_PORT_CODES = frozenset({
     RefusalCode.RESERVATION_EXPIRED, RefusalCode.NODE_QUARANTINED,
     RefusalCode.NODE_NOT_READY, RefusalCode.UNSAFE_HANDBACK_PATH,
     RefusalCode.EXECUTION_NOT_FOUND, RefusalCode.ALLOCATION_NOT_FOUND,
+    RefusalCode.NODE_NOT_FOUND,
 })
