@@ -1,0 +1,58 @@
+{
+  "machine": "quarantine",
+  "owner": "vm-factory",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_quarantine_transition",
+  "terminal_states": [
+    "released",
+    "reset_required",
+    "destroyed"
+  ],
+  "transitions": [
+    {
+      "from": "not_quarantined",
+      "to": "quarantined",
+      "actor": "vm-factory",
+      "precondition": "quarantine trigger",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "idempotent"
+    },
+    {
+      "from": "quarantined",
+      "to": "release_requested",
+      "actor": "ucc",
+      "precondition": "operator requests release",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "idempotent"
+    },
+    {
+      "from": "release_requested",
+      "to": "released",
+      "actor": "vm-factory",
+      "precondition": "evidence clears node",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "idempotent"
+    },
+    {
+      "from": "release_requested",
+      "to": "reset_required",
+      "actor": "vm-factory",
+      "precondition": "control state uncertain",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "reset then re-enroll"
+    },
+    {
+      "from": "release_requested",
+      "to": "destroyed",
+      "actor": "vm-factory",
+      "precondition": "node destroyed",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "tombstone preserved"
+    }
+  ]
+}

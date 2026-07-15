@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/event.schema.json",
+  "title": "ucc.event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "event_id", "event_type", "occurred_at",
+    "recorded_at", "producer", "actor", "subject", "correlation_id", "producer_sequence"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.event"},
+    "schema_version": {"type": "integer", "minimum": 1},
+    "event_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "event_type": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*[a-z0-9]$"},
+    "occurred_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "recorded_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module_id", "instance_id"],
+      "properties": {
+        "module_id": {"type": "string", "enum": ["ucc", "artifact-compiler", "vm-factory", "ucc-node"]},
+        "instance_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"}
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {"type": "string", "enum": ["human", "module", "node", "external"]},
+        "id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"}
+      }
+    },
+    "subject": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"},
+    "operation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "request_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "correlation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "causation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "producer_sequence": {"type": "integer", "minimum": 0},
+    "payload": {"type": "object"}
+  }
+}

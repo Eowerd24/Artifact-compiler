@@ -1,0 +1,14 @@
+{
+  "schema": "ucc.request",
+  "schema_version": 1,
+  "request_id": "req_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "operation_id": "op_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "correlation_id": "corr_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "causation_id": null,
+  "idempotency_key": "job_x:execute:v1",
+  "request_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "requested_at": "2026-07-12T12:00:00.000Z",
+  "requested_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "operation_type": "factory.request_execution",
+  "payload": {}
+}

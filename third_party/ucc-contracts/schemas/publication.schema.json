@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/publication.schema.json",
+  "title": "ucc.publication",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "id", "created_at", "created_by", "record_version",
+    "revision_id", "artifact_id", "content_hash", "channel", "publication_state"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.publication"},
+    "schema_version": {"type": "integer", "minimum": 1},
+    "id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "created_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "created_by": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "record_version": {"type": "integer", "minimum": 1},
+    "revision_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "artifact_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "content_hash": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"},
+    "channel": {"type": "string", "enum": ["execution"]},
+    "publication_state": {"type": "string", "enum": ["published", "withdrawn"]},
+    "withdrawn_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "withdrawal_reason": {"type": "string"}
+  }
+}

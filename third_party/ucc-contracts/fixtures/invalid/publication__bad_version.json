@@ -1,0 +1,13 @@
+{
+  "schema": "ucc.publication",
+  "schema_version": 0,
+  "id": "pub_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "created_at": "2026-07-12T12:00:00.000Z",
+  "created_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "record_version": 1,
+  "revision_id": "rev_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "artifact_id": "art_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "channel": "execution",
+  "publication_state": "published"
+}

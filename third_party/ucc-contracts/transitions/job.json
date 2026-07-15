@@ -1,0 +1,56 @@
+{
+  "machine": "job",
+  "owner": "ucc",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_job_transition",
+  "terminal_states": [
+    "terminal"
+  ],
+  "transitions": [
+    {
+      "from": "created",
+      "to": "queued",
+      "actor": "ucc",
+      "precondition": "project exists",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-drive from created"
+    },
+    {
+      "from": "queued",
+      "to": "dispatching",
+      "actor": "ucc",
+      "precondition": "assignment requested",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-drive"
+    },
+    {
+      "from": "dispatching",
+      "to": "running",
+      "actor": "ucc",
+      "precondition": "execution accepted",
+      "idempotent": false,
+      "terminal": false,
+      "recovery": "reconcile via execution"
+    },
+    {
+      "from": "running",
+      "to": "collecting",
+      "actor": "ucc",
+      "precondition": "execution finalizing/completed",
+      "idempotent": false,
+      "terminal": false,
+      "recovery": "reconcile"
+    },
+    {
+      "from": "collecting",
+      "to": "terminal",
+      "actor": "ucc",
+      "precondition": "handback verified or outcome known",
+      "idempotent": false,
+      "terminal": true,
+      "recovery": "reconcile; may be outcome=unknown"
+    }
+  ]
+}

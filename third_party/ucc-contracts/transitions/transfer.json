@@ -1,0 +1,112 @@
+{
+  "machine": "transfer",
+  "owner": "vm-factory",
+  "authority": "UCC-Remaining-Baseline \u00a73 / Part-G G-Context (precedence over SPEC-001 \u00a7E.6)",
+  "illegal_transition_refusal_code": "illegal_transfer_transition",
+  "terminal_states": [
+    "rejected",
+    "quarantined",
+    "closed"
+  ],
+  "transitions": [
+    {
+      "from": "created",
+      "to": "receiving",
+      "actor": "vm-factory",
+      "precondition": "inbound direction",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "resume to .partial"
+    },
+    {
+      "from": "created",
+      "to": "sending",
+      "actor": "vm-factory",
+      "precondition": "outbound direction",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "resume to .partial"
+    },
+    {
+      "from": "receiving",
+      "to": "validating",
+      "actor": "vm-factory",
+      "precondition": "bytes received",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "revalidate"
+    },
+    {
+      "from": "sending",
+      "to": "validating",
+      "actor": "vm-factory",
+      "precondition": "bytes sent",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "revalidate"
+    },
+    {
+      "from": "validating",
+      "to": "validated",
+      "actor": "vm-factory",
+      "precondition": "transport checks pass",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "revalidate"
+    },
+    {
+      "from": "validated",
+      "to": "semantic_review",
+      "actor": "vm-factory",
+      "precondition": "handed to semantic owner",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "re-review"
+    },
+    {
+      "from": "semantic_review",
+      "to": "accepted",
+      "actor": "vm-factory",
+      "precondition": "semantic owner accepts",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "idempotent"
+    },
+    {
+      "from": "semantic_review",
+      "to": "rejected",
+      "actor": "vm-factory",
+      "precondition": "semantic owner rejects",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "terminal"
+    },
+    {
+      "from": "semantic_review",
+      "to": "quarantined",
+      "actor": "vm-factory",
+      "precondition": "unsafe content",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "manual review"
+    },
+    {
+      "from": "accepted",
+      "to": "promoted",
+      "actor": "vm-factory",
+      "precondition": "destination entity committed",
+      "idempotent": true,
+      "terminal": false,
+      "recovery": "reconcile via destination owner"
+    },
+    {
+      "from": "promoted",
+      "to": "closed",
+      "actor": "vm-factory",
+      "precondition": "transfer finalized",
+      "idempotent": true,
+      "terminal": true,
+      "recovery": "idempotent"
+    }
+  ]
+}

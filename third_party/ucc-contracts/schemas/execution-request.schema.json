@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/execution-request.schema.json",
+  "title": "ucc.execution-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "request_id", "execution_id", "assignment_id",
+    "node_id", "node_generation", "artifact_revision_id", "artifact_content_hash",
+    "publication_id", "entrypoint", "interpreter", "args", "working_directory",
+    "timeout_seconds", "limits", "expected_outputs", "idempotency_key", "correlation_id"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.execution-request"},
+    "schema_version": {"type": "integer", "minimum": 1},
+    "request_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "execution_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "assignment_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "node_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "node_generation": {"type": "integer", "minimum": 0},
+    "artifact_revision_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "artifact_content_hash": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"},
+    "publication_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "entrypoint": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"},
+    "interpreter": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "args": {"type": "array", "items": {"type": "string"}},
+    "working_directory": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"},
+    "environment": {"type": "object", "additionalProperties": {"type": "string"}},
+    "credential_lease_ids": {"type": "array", "items": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"}},
+    "timeout_seconds": {"type": "integer", "minimum": 1},
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stdout_bytes", "stderr_bytes", "output_files", "output_bytes"],
+      "properties": {
+        "stdout_bytes": {"type": "integer", "minimum": 0},
+        "stderr_bytes": {"type": "integer", "minimum": 0},
+        "output_files": {"type": "integer", "minimum": 0},
+        "output_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "required"],
+        "properties": {
+          "path": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"},
+          "required": {"type": "boolean"}
+        }
+      }
+    },
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "correlation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"}
+  }
+}

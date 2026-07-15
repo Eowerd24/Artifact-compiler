@@ -1,0 +1,13 @@
+{
+  "request__unknown_field.json": "request",
+  "request__bad_id.json": "request",
+  "execution_request__hash_mismatch_form.json": "execution-request",
+  "artifact_content_manifest__path_traversal.json": "artifact-content-manifest",
+  "execution_request__absolute_entrypoint.json": "execution-request",
+  "result__bad_disposition.json": "result",
+  "problem__bad_kind.json": "problem",
+  "event__missing_correlation.json": "event",
+  "publication__bad_version.json": "publication",
+  "module_health__bad_module.json": "module-health",
+  "event__legacy_producer_module_key.json": "event"
+}

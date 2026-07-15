@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/result.schema.json",
+  "title": "ucc.result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "result_id", "request_id", "operation_id",
+    "correlation_id", "completed_at", "disposition", "resource", "warnings"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.result"},
+    "schema_version": {"type": "integer", "minimum": 1},
+    "result_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "request_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "operation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "correlation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "completed_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "disposition": {
+      "type": "string",
+      "enum": ["accepted", "completed", "refused", "failed", "partial", "cancelled", "unknown"]
+    },
+    "resource": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"},
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  }
+}

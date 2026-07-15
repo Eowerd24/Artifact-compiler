@@ -14,7 +14,7 @@ import typer
 
 from . import __version__
 from .config import SoloctlConfig, load_config
-from .errors import SecretDetected, SoloctlError
+from .errors import IdempotencyConflict, OutcomeUnknown, SecretDetected, SoloctlError
 from .importers import build_default_registry
 from .importers.base import ConversationSummary
 from .importers.registry import ImporterRegistry
@@ -24,6 +24,7 @@ from .library.repository import InitResult, init_library
 from .transcript.models import Transcript
 from .transcript.render import render_transcript
 from .transcript.storage import SavedTranscript, preview_transcript_destination, save_transcript
+from .ucc_events import emit_event
 
 app = typer.Typer(no_args_is_help=True, add_completion=False,
                   help="Local-first artifact compiler CLI.")
@@ -59,10 +60,7 @@ def perform_list(config: SoloctlConfig, path: Path, *,
 
 def _log_import_event(paths: LibraryPaths, source_path: Path, transcript: Transcript, *,
                        result: str, detail: str, dry_run: bool) -> None:
-    append_event(paths.events_file, {
-        "schema": EVENT_SCHEMA_VERSION,
-        "event": "transcript.import",
-        "ts": now_iso(),
+    payload = {
         "result": result,
         "detail": detail,
         "source_path": str(source_path),
@@ -70,7 +68,17 @@ def _log_import_event(paths: LibraryPaths, source_path: Path, transcript: Transc
         "conversation_id": transcript.conversation_id,
         "turns": len(transcript.turns),
         "dry_run": dry_run,
+    }
+    append_event(paths.events_file, {
+        "schema": EVENT_SCHEMA_VERSION,
+        "event": "transcript.import",
+        "ts": now_iso(),
+        **payload,
     })
+    # Dual-write (roadmap §4B "Shared IDs/envelopes"): the legacy ledger
+    # above stays the primary, unchanged read path; this is additive.
+    event_type = "transcript.import_completed" if result == "ok" else "transcript.import_refused"
+    emit_event(paths.ucc_events_file, event_type=event_type, payload=payload)
 
 
 def perform_import(config: SoloctlConfig, path: Path, *,
@@ -91,8 +99,12 @@ def perform_import(config: SoloctlConfig, path: Path, *,
     hit = scan_text_for_secret(rendered, scrub_patterns)
     if hit:
         label, line = hit
-        _log_import_event(paths, path, transcript, result="refused",
-                          detail=f"secret:{label}", dry_run=dry_run)
+        # Dry run performs no canonical mutation and appends no canonical audit
+        # event (locked Decision 1-of-2 §1.24; SPEC-001 §C.7). The refusal is
+        # still surfaced to the caller via SecretDetected below.
+        if not dry_run:
+            _log_import_event(paths, path, transcript, result="refused",
+                              detail=f"secret:{label}", dry_run=dry_run)
         # `line` is an offset into the rendered canonical transcript (front
         # matter shifts it), not the original file — SecretDetected.path
         # says so explicitly rather than implying a false-precision match
@@ -168,6 +180,16 @@ def _render_import(outcome: ImportOutcome) -> None:
     print(f"  wrote:   {outcome.written.relative_path}")
 
 
+def _render_import_result(result: dict) -> None:
+    """Renders the ucc.result dict returned by perform_import_idempotent's
+    real (non-dry, non-replay-passthrough) path — same information as
+    _render_import, different (envelope) source shape."""
+    print(f"soloctl import — {result['disposition']} (result {result['result_id']})")
+    print(f"  request:     {result['request_id']}")
+    print(f"  operation:   {result['operation_id']}")
+    print(f"  correlation: {result['correlation_id']}")
+
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
@@ -196,6 +218,11 @@ def import_(
     list_only: bool = typer.Option(False, "--list", help="List conversations found in path and exit"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without writing"),
     library: Path = typer.Option(None, "--library", help="Library root directory"),
+    idempotency_key: str = typer.Option(
+        None, "--idempotency-key",
+        help="Opt in to idempotent replay: repeating the same key+inputs returns the "
+             "stored result instead of re-importing; reusing the key with different "
+             "inputs refuses (exit 3). Omit for today's exactly-once-per-invocation behavior."),
 ) -> None:
     """Import a transcript into the library as canonical markdown."""
     config = _resolve_config(library)
@@ -204,17 +231,35 @@ def import_(
             summaries = perform_list(config, path, adapter=adapter)
             _render_list(path, summaries)
             return
-        outcome = perform_import(config, path, adapter=adapter, title=title,
-                                 conversation_id=conversation, dry_run=dry_run)
+        if idempotency_key:
+            from .idempotent_import import perform_import_idempotent
+            outcome = perform_import_idempotent(
+                config, path, idempotency_key=idempotency_key, adapter=adapter,
+                title=title, conversation_id=conversation, dry_run=dry_run)
+        else:
+            outcome = perform_import(config, path, adapter=adapter, title=title,
+                                     conversation_id=conversation, dry_run=dry_run)
     except SecretDetected as exc:
         typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
         typer.secho("Nothing was written. Remove the credential from the "
                     "source and re-run.", err=True)
         raise typer.Exit(2)
+    except IdempotencyConflict as exc:
+        typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
+        typer.secho("This --idempotency-key was already used with different "
+                    "inputs. Use a new key, or repeat the exact same inputs.", err=True)
+        raise typer.Exit(3)
+    except OutcomeUnknown as exc:
+        typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
+        typer.secho("Reconcile the earlier operation before reusing this key.", err=True)
+        raise typer.Exit(4)
     except SoloctlError as exc:
         typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
-    _render_import(outcome)
+    if isinstance(outcome, dict):
+        _render_import_result(outcome)
+    else:
+        _render_import(outcome)
 
 
 @app.command()

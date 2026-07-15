@@ -1,0 +1,15 @@
+{
+  "schema": "ucc.problem",
+  "schema_version": 1,
+  "kind": "refusal",
+  "code": "artifact_not_published",
+  "message": "Revision not published for channel execution.",
+  "retryable": false,
+  "details": {
+    "revision_id": "rev_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+  },
+  "remediation": "Publish the exact revision.",
+  "request_id": "req_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "operation_id": "op_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "correlation_id": "corr_01K0A6R4V8W6E3M4M8Y0R9J2QX"
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/problem.schema.json",
+  "title": "ucc.problem",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "kind", "code", "message", "retryable",
+    "request_id", "operation_id", "correlation_id"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.problem"},
+    "schema_version": {"type": "integer", "minimum": 1},
+    "kind": {
+      "type": "string",
+      "enum": ["refusal", "validation_error", "conflict", "dependency_unavailable", "operation_failed", "outcome_unknown", "security_violation"]
+    },
+    "code": {"type": "string", "minLength": 1},
+    "message": {"type": "string", "minLength": 1},
+    "retryable": {"type": "boolean"},
+    "details": {"type": "object"},
+    "remediation": {"type": "string"},
+    "request_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "operation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "correlation_id": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"}
+  }
+}

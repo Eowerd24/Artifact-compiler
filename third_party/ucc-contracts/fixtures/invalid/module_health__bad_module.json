@@ -1,0 +1,19 @@
+{
+  "schema": "ucc.module-registration",
+  "schema_version": 1,
+  "module_id": "rogue",
+  "display_name": "VM-Factory",
+  "module_version": "0.1.0",
+  "adapter_kind": "in_process",
+  "enabled": true,
+  "supported_contract_versions": [
+    1
+  ],
+  "capabilities": [
+    "execute",
+    "reserve"
+  ],
+  "canonical_root": "data/factory",
+  "health_timeout_seconds": 30,
+  "health": "healthy"
+}
