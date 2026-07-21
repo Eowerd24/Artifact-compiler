@@ -13,11 +13,9 @@ Scope decisions (see PROGRESS.md / roadmap M-b for the full write-up):
   envelope around it would risk violating the locked dry-run-no-write
   invariant if done carelessly. Simplest correct answer: don't route it
   through the store at all.
-- Only a definite **success** (disposition=completed) is stored as a replay
-  candidate. A refusal (`SecretDetected`) is cheap and safe to re-attempt —
-  it just re-scans and refuses the same way — so it is not idempotency-
-  tracked. This also means `unknown` never gets a stored record: nothing
-  here ever becomes replayable before it has a definite, successful outcome.
+- The store commits `unknown` before dispatch. Success replaces it; a
+  definite pre-write refusal removes it. An ambiguous exception retains it,
+  and the same request then refuses `outcome_unknown` until reconciliation.
 """
 from __future__ import annotations
 
@@ -31,13 +29,27 @@ from ucc_contracts.idempotency import (
 
 from .cli import ImportOutcome, perform_import
 from .config import SoloctlConfig
-from .errors import IdempotencyConflict
+from .errors import IdempotencyConflict, OutcomeUnknown, SecretDetected
 from .idempotency_store import IdempotencyStore, request_fingerprint
 from .importers.registry import ImporterRegistry
 from .library.paths import LibraryPaths
 from .ucc_events import ucc_now_iso
 
 OPERATION_TYPE = "transcript.import"
+
+
+def _outcome_unknown_problem(*, request_id: str, operation_id: str,
+                             correlation_id: str) -> dict:
+    problem = {
+        "schema": "ucc.problem", "schema_version": 1,
+        "kind": "outcome_unknown", "code": "outcome_unknown",
+        "message": "a prior import has an unknown outcome; reconcile it before retrying",
+        "retryable": False,
+        "request_id": request_id, "operation_id": operation_id,
+        "correlation_id": correlation_id,
+    }
+    validate_document("problem", problem)
+    return problem
 
 
 def perform_import_idempotent(
@@ -72,6 +84,11 @@ def perform_import_idempotent(
     operation_id = new_id("op")
     correlation_id = new_id("corr")
 
+    if outcome == IdempotencyOutcome.REPLAY and stored.disposition == "unknown":
+        raise OutcomeUnknown(_outcome_unknown_problem(
+            request_id=request_id, operation_id=operation_id,
+            correlation_id=correlation_id))
+
     if outcome == IdempotencyOutcome.REPLAY:
         return stored.result
 
@@ -93,8 +110,19 @@ def perform_import_idempotent(
     }
     validate_document("request", request_doc)
 
-    import_outcome = perform_import(config, path, adapter=adapter, conversation_id=conversation_id,
-                                    title=title, dry_run=False, registry=registry)
+    store.put_in_flight(
+        idempotency_key=idempotency_key, fingerprint=fingerprint,
+        operation_type=OPERATION_TYPE, created_at=request_doc["requested_at"],
+    )
+
+    try:
+        import_outcome = perform_import(
+            config, path, adapter=adapter, conversation_id=conversation_id,
+            title=title, dry_run=False, registry=registry,
+        )
+    except SecretDetected:
+        store.delete(idempotency_key)
+        raise
 
     result_doc = {
         "schema": "ucc.result", "schema_version": 1,
@@ -105,7 +133,5 @@ def perform_import_idempotent(
         "warnings": [],
     }
     validate_document("result", result_doc)
-    store.put(idempotency_key=idempotency_key, fingerprint=fingerprint,
-             operation_type=OPERATION_TYPE, disposition="completed",
-             result=result_doc, created_at=result_doc["completed_at"])
+    store.complete(idempotency_key=idempotency_key, result=result_doc)
     return result_doc

@@ -14,7 +14,7 @@ import typer
 
 from . import __version__
 from .config import SoloctlConfig, load_config
-from .errors import IdempotencyConflict, SecretDetected, SoloctlError
+from .errors import IdempotencyConflict, OutcomeUnknown, SecretDetected, SoloctlError
 from .importers import build_default_registry
 from .importers.base import ConversationSummary
 from .importers.registry import ImporterRegistry
@@ -249,6 +249,10 @@ def import_(
         typer.secho("This --idempotency-key was already used with different "
                     "inputs. Use a new key, or repeat the exact same inputs.", err=True)
         raise typer.Exit(3)
+    except OutcomeUnknown as exc:
+        typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
+        typer.secho("Reconcile the prior import outcome before retrying this key.", err=True)
+        raise typer.Exit(4)
     except SoloctlError as exc:
         typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)

@@ -133,13 +133,36 @@ bumping the vendored copy is deliberate and version-gated, never silent.
 Every real import also dual-writes a `ucc.event` to `library/events/` alongside
 the legacy `transcript.import` ledger event in `library/events.jsonl`.
 
+## Standalone status and limitations
+
+This is a **UCC Stage-1 conformant standalone tool**. It runs and is tested on its own.
+It is *not* the UCC product and does not integrate with the other UCC repos yet.
+
+- **Shared contracts:** pinned to `ucc-contracts v0.2.0` (vendored under
+  `third_party/ucc-contracts/`, export set per its VENDOR-MANIFEST.md). Never edited locally.
+- **Placeholder entity IDs (D4):** `ucc.event` records carry `subject.id` values that are
+  **deterministic sha256-derived placeholders**, not canonical prefixed ULIDs. Real IDs
+  arrive with the record layer in Stage 2. **Do not build external references on them.**
+- **Events are dual-written:** the legacy ledger *and* a schema-conformant `ucc.event`
+  stream. Neither replaces the other yet.
+- **`producer_sequence`** is per-producer, not globally ordered, and not race-safe under
+  concurrent writers (matching the legacy ledgers).
+- **Fenced paths:** direct-infrastructure and shell paths are retained for standalone use
+  only, unreachable from any port (AST call-site tests). Not an integration surface.
+- **Domain schemas are not authored yet** (~26 records; standards reference §17). They gate
+  the vertical proof, not this baseline.
+- **`ArtifactPort` refuses everything** — no Artifact/Revision/Publication store exists yet;
+  the adapter validates and refuses rather than fabricating records.
+- **Governance is not implemented.** `drafts/approved/revoked/superseded` directories are
+  not an authority model; `ApprovalRecord`/`PublicationRecord` are Stage 2.
+
 ## Running tests
 
 ```bash
 python3 -m pytest tests/ -v
 ```
 
-86 tests across configuration, library initialization, transcript
+164 tests across configuration, library initialization, transcript
 render/parse round-tripping, the markdown/ChatGPT/Claude importers, the
 importer registry, and extractor regression (converted from the original
 `selftest.py` bare-assert suite). Versioned fixtures live under

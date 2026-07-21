@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from soloctl.config import SoloctlConfig
-from soloctl.errors import IdempotencyConflict, SecretDetected
+from soloctl.errors import IdempotencyConflict, OutcomeUnknown, SecretDetected
 from soloctl.idempotent_import import perform_import_idempotent
 from soloctl.idempotency_store import IdempotencyStore
 from soloctl.library.repository import init_library
@@ -129,3 +129,26 @@ def test_request_fingerprint_is_stable_for_identical_payloads(tmp_path):
     b = request_fingerprint({"path": "x", "adapter": None, "conversation_id": None, "title": None})
     assert a == b
     assert a.startswith("sha256:")
+
+
+def test_ambiguous_dispatch_is_not_reexecuted(tmp_path, monkeypatch):
+    src = tmp_path / "plain.md"
+    src.write_text(PLAIN, encoding="utf-8")
+    config = _config(tmp_path)
+    calls = 0
+
+    def ambiguous_import(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("connection dropped after dispatch")
+
+    monkeypatch.setattr("soloctl.idempotent_import.perform_import", ambiguous_import)
+
+    with pytest.raises(RuntimeError):
+        perform_import_idempotent(config, src, idempotency_key="ambiguous-k")
+    with pytest.raises(OutcomeUnknown) as exc_info:
+        perform_import_idempotent(config, src, idempotency_key="ambiguous-k")
+
+    assert calls == 1
+    assert exc_info.value.problem["code"] == "outcome_unknown"
+    validate_document("problem", exc_info.value.problem)

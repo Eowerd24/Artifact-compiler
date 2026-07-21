@@ -75,3 +75,11 @@ class IdempotencyConflict(SoloctlError):
     def __init__(self, problem: dict) -> None:
         self.problem = problem
         super().__init__(problem["message"])
+
+
+class OutcomeUnknown(SoloctlError):
+    """A prior idempotent dispatch may have run and needs reconciliation."""
+
+    def __init__(self, problem: dict) -> None:
+        self.problem = problem
+        super().__init__(problem["message"])

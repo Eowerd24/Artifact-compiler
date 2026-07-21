@@ -2,21 +2,25 @@
 
 Canonical evidence (backed up), not a disposable projection — a SQLite table
 under this repo's own state root (`library/idempotency.db`, sibling to
-`library/events.jsonl`). Only definite-success results are stored: a refused
-import is safe and cheap to re-attempt (it re-scans and refuses the same
-way), so it is not idempotency-tracked. This also means an `unknown`
-disposition is never stored — nothing here ever becomes a replay candidate
-until it has a definite, successful outcome.
+`library/events.jsonl`). An `unknown` row is committed before dispatch,
+replaced on success, removed on definite refusal, and retained after
+ambiguity so retry cannot silently execute the import again. No row expires.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from ucc_contracts.idempotency import StoredIdempotencyRecord
+
+
+@dataclass(frozen=True)
+class IdempotencyRecord(StoredIdempotencyRecord):
+    disposition: str
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS idempotency_records (
@@ -43,32 +47,47 @@ class IdempotencyStore:
         self._conn.execute(_SCHEMA)
         self._conn.commit()
 
-    def get(self, idempotency_key: str) -> Optional[StoredIdempotencyRecord]:
+    def get(self, idempotency_key: str) -> Optional[IdempotencyRecord]:
         row = self._conn.execute(
-            "SELECT request_fingerprint, result_json FROM idempotency_records WHERE idempotency_key = ?",
+            "SELECT request_fingerprint, disposition, result_json "
+            "FROM idempotency_records WHERE idempotency_key = ?",
             (idempotency_key,),
         ).fetchone()
         if row is None:
             return None
-        fingerprint, result_json = row
-        return StoredIdempotencyRecord(
+        fingerprint, disposition, result_json = row
+        return IdempotencyRecord(
             idempotency_key=idempotency_key,
             request_fingerprint=fingerprint,
+            disposition=disposition,
             result=json.loads(result_json),
         )
 
-    def put(self, *, idempotency_key: str, fingerprint: str, operation_type: str,
-            disposition: str, result: dict, created_at: str) -> None:
-        """Only ever called for a definite, non-`unknown` disposition — see
-        module docstring. INSERT, not UPSERT: a caller reaching `put()` has
-        already confirmed via `evaluate_idempotency()` that no conflicting
-        record exists for this key."""
+    def put_in_flight(self, *, idempotency_key: str, fingerprint: str,
+                      operation_type: str, created_at: str) -> None:
         self._conn.execute(
             "INSERT INTO idempotency_records "
             "(idempotency_key, request_fingerprint, operation_type, disposition, result_json, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?)",
-            (idempotency_key, fingerprint, operation_type, disposition,
-             json.dumps(result, ensure_ascii=False, separators=(",", ":")), created_at),
+            (idempotency_key, fingerprint, operation_type, "unknown", "{}", created_at),
+        )
+        self._conn.commit()
+
+    def complete(self, *, idempotency_key: str, result: dict) -> None:
+        cursor = self._conn.execute(
+            "UPDATE idempotency_records SET disposition = ?, result_json = ? "
+            "WHERE idempotency_key = ?",
+            ("completed", json.dumps(result, ensure_ascii=False, separators=(",", ":")),
+             idempotency_key),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(f"missing in-flight idempotency record for {idempotency_key!r}")
+        self._conn.commit()
+
+    def delete(self, idempotency_key: str) -> None:
+        self._conn.execute(
+            "DELETE FROM idempotency_records WHERE idempotency_key = ?",
+            (idempotency_key,),
         )
         self._conn.commit()
 
