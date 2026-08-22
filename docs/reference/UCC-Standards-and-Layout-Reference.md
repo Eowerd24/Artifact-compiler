@@ -31,7 +31,7 @@ Form: `<lowercase-prefix>_<26-char uppercase Crockford ULID>` (e.g. `job_01K0A6R
 | **host_** host | **img_** image | **snap_** snapshot | **node_** node | **nalloc_** node allocation |
 | **prj_** project | **job_** job | **asn_** assignment | **exec_** execution | **xfer_** transfer |
 | **hb_** handback | **rpt_** report | **cred_** credential lease | **evt_** event | **op_** operation |
-| **req_** request | **res_** result | **corr_** correlation | | |
+| **req_** request | **res_** result | **corr_** correlation | **ver_** verification | **apr_** approval |
 
 References are `{ "kind": "job", "id": "job_..." }`; immutable-content references add `"content_hash": "sha256:..."`.
 
@@ -258,8 +258,8 @@ VM-Factory asset source kinds: `packaged | operator_material | repository_snapsh
 
 ## 17. Required schemas (Phase 0 close)
 
-**Present in `ucc-contracts`:** `common, request, result, problem, event, module-health, artifact-content-manifest, publication, execution-request`.
+**Present on the S2-C development line:** `common, request, result, problem, event, module-health, artifact, artifact-revision, artifact-content-manifest, verification, approval, publication, execution-request`. The four S2-1 additions are pinned at `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`; `v0.3.0` is not cut yet.
 
-**Queued (each needs valid + invalid fixtures):** `ucc.transfer, ucc.transfer-receipt, ucc.promotion, ucc.material, ucc.repository, ucc.repository-snapshot, ucc.workspace, ucc.workspace-checkpoint, ucc.material-collection, ucc.command-definition, ucc.vm-factory-asset, ucc.large-data-reference`, plus domain records `ucc.project, ucc.job, ucc.assignment, ucc.node, ucc.node-manifest, ucc.node-allocation, ucc.execution, ucc.handback, ucc.report, ucc.credential-lease, ucc.health-observation, ucc.quarantine, ucc.artifact, ucc.artifact-revision, ucc.verification, ucc.approval`.
+**Queued (each needs valid + invalid fixtures):** `ucc.transfer, ucc.transfer-receipt, ucc.promotion, ucc.material, ucc.repository, ucc.repository-snapshot, ucc.workspace, ucc.workspace-checkpoint, ucc.material-collection, ucc.command-definition, ucc.vm-factory-asset, ucc.large-data-reference`, plus domain records `ucc.project, ucc.job, ucc.assignment, ucc.node, ucc.node-manifest, ucc.node-allocation, ucc.execution, ucc.handback, ucc.report, ucc.credential-lease, ucc.health-observation, ucc.quarantine`.
 
 Every schema ships with valid, invalid, path-traversal, hash-mismatch, and unsupported-version fixtures, plus contract tests in each repo where relevant.

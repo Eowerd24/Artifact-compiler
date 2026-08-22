@@ -1,0 +1,11 @@
+{
+  "schema": "ucc.artifact",
+  "schema_version": 1,
+  "id": "rev_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "created_at": "2026-07-12T12:00:00.000Z",
+  "created_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "record_version": 1,
+  "artifact_type": "script",
+  "title": "Wrong prefix",
+  "lifecycle": "active"
+}

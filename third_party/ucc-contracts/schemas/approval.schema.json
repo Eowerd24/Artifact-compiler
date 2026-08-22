@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/approval.schema.json",
+  "title": "ucc.approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "id", "created_at", "created_by", "record_version",
+    "revision_id", "content_hash", "approval_state"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.approval"},
+    "schema_version": {"const": 1},
+    "id": {
+      "allOf": [
+        {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+        {"pattern": "^apr_"}
+      ]
+    },
+    "created_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "created_by": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "record_version": {"const": 1},
+    "revision_id": {
+      "allOf": [
+        {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+        {"pattern": "^rev_"}
+      ]
+    },
+    "content_hash": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"},
+    "approval_state": {"type": "string", "enum": ["approved", "revoked"]},
+    "reason": {"type": "string", "maxLength": 4096}
+  }
+}

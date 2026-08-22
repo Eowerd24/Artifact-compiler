@@ -20,7 +20,7 @@ _HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 # SPEC-001 §E.3 initial prefixes. This table is authoritative; repositories
 # must not invent divergent prefixes.
 ID_PREFIXES: frozenset[str] = frozenset({
-    "act", "art", "rev", "col", "pub",
+    "act", "art", "rev", "ver", "apr", "col", "pub",
     "host", "img", "snap", "node", "nalloc",
     "prj", "job", "asn", "exec", "xfer",
     "hb", "rpt", "cred", "evt", "op", "req", "res", "corr",

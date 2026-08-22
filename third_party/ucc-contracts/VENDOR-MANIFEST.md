@@ -15,3 +15,8 @@ Excluded, deliberately:
 Equality rule: every tag-backed file in the export set is byte-identical to the
 pinned tag; this post-tag manifest matches the authoritative root copy; no
 excluded path is tracked; all consuming repos' copies are mutually identical.
+
+> This manifest post-dates the immutable v0.2.0 tag. It is release metadata, not a tag
+> member. Vendor equality is verified by comparing each vendored export-set file to the
+> authoritative root and to the other vendors — NOT by tag membership. Moving v0.2.0 to
+> include this file would rewrite release history and is prohibited.
