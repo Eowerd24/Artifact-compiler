@@ -1,8 +1,7 @@
 # soloctl — Artifact Compiler backend (Work Packages 1-2)
 
 Local-first backend that imports chat transcripts, extracts reusable
-artifacts, and (in later work packages) emits them into a filesystem
-library with draft/approved/verified states. Single operator, no database,
+artifacts, and now stores minimal canonical script Artifact/Revision/Verification/Approval/Publication records with hash-addressed content. Single operator, no database,
 no frontend, no network calls.
 
 Work Package 1 delivered: package scaffolding, configuration loading,
@@ -15,8 +14,7 @@ import adapters, conversation listing/selection (`--list`,
 `--conversation`), and a `transcript.import` ledger event appended to
 `library/events.jsonl` on every real import (success or secret refusal).
 
-Still **not** implemented: emitters, compiled artifacts, verification,
-approval, tags, or collections — those are later work packages.
+Still **not** implemented: the full emitter catalog, tags, collections, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
 
 ## Installation
 
@@ -46,6 +44,8 @@ library/
 │   └── superseded/
 ├── collections/
 ├── verification/
+├── canonical/artifact-compiler/  # authoritative S2-1 records + immutable content
+├── events/artifact-compiler.jsonl
 └── events.jsonl
 ```
 
@@ -125,7 +125,7 @@ content — including fenced code blocks — is preserved exactly.
 
 ## UCC conformance
 
-Conforms to **ucc-contracts v0.2.0** (git tag, ucc-contracts is now its own repo), vendored at
+Uses the immutable **ucc-contracts v0.2.0** release baseline plus the additive S2-1 contract development pin **56e2efc6024d9de032350fa061d2ec9a6cedb9a8**. The exact D8 export set is vendored at
 `third_party/ucc-contracts/` (schemas, lifecycle transition tables, ID/hash/path
 primitives — no domain code). `tests/contracts/` asserts this repo's own
 (de)serialization and validation matches the pinned contracts exactly;
@@ -135,26 +135,19 @@ the legacy `transcript.import` ledger event in `library/events.jsonl`.
 
 ## Standalone status and limitations
 
-This is a **UCC Stage-1 conformant standalone tool**. It runs and is tested on its own.
-It is *not* the UCC product and does not integrate with the other UCC repos yet.
+This remains a standalone-usable Artifact Compiler, now carrying the additive S2-1 owner-side record store and real in-process `ArtifactPort`. It is *not* the UCC product, a network service, or a cross-owner canonical writer.
 
-- **Shared contracts:** pinned to `ucc-contracts v0.2.0` (vendored under
-  `third_party/ucc-contracts/`, export set per its VENDOR-MANIFEST.md). Never edited locally.
-- **Placeholder entity IDs (D4):** `ucc.event` records carry `subject.id` values that are
-  **deterministic sha256-derived placeholders**, not canonical prefixed ULIDs. Real IDs
-  arrive with the record layer in Stage 2. **Do not build external references on them.**
+- **Shared contracts:** release baseline `v0.2.0`; S2-1 development pin `56e2efc6024d9de032350fa061d2ec9a6cedb9a8` pending the deliberate `v0.3.0` release. The vendor is copied only from upstream, never hand-edited.
+- **Entity IDs:** S2-1 Artifact mutations and events use real `art_`/`rev_`/`ver_`/`apr_`/`pub_` ULIDs. Legacy transcript-import events still use the documented operation subject until S2-5 completes the remaining D4 cutover.
 - **Events are dual-written:** the legacy ledger *and* a schema-conformant `ucc.event`
   stream. Neither replaces the other yet.
 - **`producer_sequence`** is per-producer, not globally ordered, and not race-safe under
   concurrent writers (matching the legacy ledgers).
 - **Fenced paths:** direct-infrastructure and shell paths are retained for standalone use
   only, unreachable from any port (AST call-site tests). Not an integration surface.
-- **Domain schemas are not authored yet** (~26 records; standards reference §17). They gate
-  the vertical proof, not this baseline.
-- **`ArtifactPort` refuses everything** — no Artifact/Revision/Publication store exists yet;
-  the adapter validates and refuses rather than fabricating records.
-- **Governance is not implemented.** `drafts/approved/revoked/superseded` directories are
-  not an authority model; `ApprovalRecord`/`PublicationRecord` are Stage 2.
+- **Domain schemas:** `artifact`, `artifact-revision`, `verification`, and `approval` are now authored with fixtures; the remaining Stage 2 set stays queued in standards §17.
+- **`ArtifactPort` is real for S2-1:** create/approve/publish/withdraw mutations are idempotent; reads return canonical records; eligibility fails closed on publication, verification, approval, entrypoint, and hash evidence.
+- **Governance authority is record-based.** `drafts/approved/revoked/superseded` remain projection/export directories only.
 
 ## Running tests
 
@@ -162,7 +155,7 @@ It is *not* the UCC product and does not integrate with the other UCC repos yet.
 python3 -m pytest tests/ -v
 ```
 
-164 tests across configuration, library initialization, transcript
+176 tests across configuration, library initialization, transcript
 render/parse round-tripping, the markdown/ChatGPT/Claude importers, the
 importer registry, and extractor regression (converted from the original
 `selftest.py` bare-assert suite). Versioned fixtures live under

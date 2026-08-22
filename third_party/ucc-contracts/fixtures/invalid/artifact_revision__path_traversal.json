@@ -1,0 +1,21 @@
+{
+  "schema": "ucc.artifact-revision",
+  "schema_version": 1,
+  "id": "rev_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "created_at": "2026-07-12T12:00:00.000Z",
+  "created_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "record_version": 1,
+  "artifact_id": "art_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "artifact_type": "script",
+  "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "manifest_path": "../content-manifest.json",
+  "content_reference": {
+    "store_id": "artifact-compiler",
+    "relative_path": "revisions/rev_01K0A6R4V8W6E3M4M8Y0R9J2QX/content",
+    "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "provenance": {
+    "source_kind": "operator_input",
+    "source_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  }
+}

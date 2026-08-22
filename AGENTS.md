@@ -17,10 +17,7 @@ re-sync here if the shared core changes.
 
 ## 0. What this repo is
 
-A **UCC Stage-1 conformant standalone tool.** It runs and is tested on its own, and it
-conforms to a shared contract layer so three repos can later integrate. The fork onto the
-UCC line has **not** been cut yet. Pinned shared-contract version: **`ucc-contracts v0.2.0`**
-(vendored under `third_party/ucc-contracts/`).
+A standalone-usable Artifact Compiler on the post-fork Stage 2 line. S2-1 additively introduces this owner’s canonical Artifact records and real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: immutable `v0.2.0` plus exact S2-1 development pin `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`, vendored under `third_party/ucc-contracts/` pending the deliberate `v0.3.0` release.
 
 Two documents outrank this file and each other in this order — read them before non-trivial work:
 
@@ -33,11 +30,9 @@ table (D1–D6) or its conflict-resolution table.
 
 ---
 
-## 1. Shared core — non-negotiable rules (identical in all three repos)
+## 1. Stage 2 guardrails — non-negotiable rules
 
-1. **Fork scope is NARROW.** Do **not**: build the UCC product, merge repos, add a broker /
-   network service / canonical database, or wire real cross-module adapters. Those are Stage 2
-   (post-fork). Port adapters here may stay honest stubs.
+1. **Stage 2 scope is NARROW.** This repo may implement AC-owned canonical records and its real in-process `ArtifactPort`. Do **not** build the UCC product here, merge repos, add a broker/network service/server database, or write another owner’s canonical root.
 2. **Fail closed over fabricate.** If you lack a real ID, hash, token, publication state, or
    record, refuse with a typed `ucc.problem` — never invent one. This is the same principle
    behind the vault and dry-run fixes; apply it everywhere, especially in port methods.
@@ -49,15 +44,13 @@ table (D1–D6) or its conflict-resolution table.
    failing fence test by weakening it to text matching** — that regression already happened once
    and was reverted. If a fence test fails, you added a real forbidden call; remove it.
 5. **`ucc-contracts` is vendored and pinned.** Never hand-edit schemas, ID rules, lifecycle
-   tables, or refusal codes locally. If the contract needs to change, it changes upstream, gets a
-   new tag, and is re-vendored — then this repo bumps its pinned version.
+   tables, or refusal codes locally. If the contract needs to change, it changes upstream first. A pre-release dependent branch may pin an exact upstream development commit; released branches advance only by a deliberate immutable tag and re-vendor.
 6. **Standalone stays usable.** Every change is additive or a fenced relocation. Never remove this
    repo's independent CLI/run path or its existing tests.
 7. **Six-field format for every change**, in the PR/patch description:
    current evidence / target contract / smallest conforming change / compatibility impact /
    tests / migration or fallback.
-8. **Delivery is via patches.** Clones are read-only (no push creds). Produce `.patch`/diffs and
-   files; do not assume you can push. Patches are cumulative and order-sensitive per repo.
+8. **Delivery is via reviewed branches.** Keep upstream contracts and dependent repo changes in separate commits/PRs; pin the dependency SHA exactly; never move a release tag.
 9. **Keep the docs in lockstep.** If you change the schema set or a gate's state, update the
    roadmap (§2/§8) and standards reference (§17) in the same change.
 
@@ -69,9 +62,7 @@ table (D1–D6) or its conflict-resolution table.
   schema's `causation_id` is not nullable).
 - `producer_sequence` is per-producer, not globally ordered; it is not race-safe under concurrent
   writers (matches the legacy ledgers — do not claim otherwise).
-- Real canonical IDs (`art_`, `node_`, …) do not exist yet. Current `subject.id`s are **documented
-  placeholders** (deterministic sha256-derived). Do not build logic that assumes they are the final
-  canonical IDs; they are replaced in Stage 2.
+- S2-1 Artifact records and their mutation events use real canonical ULIDs. Legacy transcript-import event subjects remain documented operation placeholders until the later S2-5 cutover; do not treat those as Artifact IDs.
 
 ---
 
@@ -97,9 +88,7 @@ table (D1–D6) or its conflict-resolution table.
 - **Dry-run invariant (never regress):** a dry run performs **no** canonical mutation and appends
   **no** event — including the secret-refusal path (the `_log_import_event` call stays behind
   `if not dry_run:`). A real (non-dry) refusal must still audit.
-- **Ports:** `soloctl/artifact_port.py` — 7 `ArtifactPort` methods; each validates its request
-  (→ `VALIDATION_ERROR`) then refuses `DEPENDENCY_UNAVAILABLE` (no Artifact/Revision/Publication
-  record store exists yet — that's Stage 2). Never fabricate a revision id, hash, or publication.
+- **Ports (S2-1):** `soloctl/artifact_port.py` implements all 7 methods over `soloctl/artifact_store.py`. Mutations require canonical actor IDs plus idempotency keys; reads return real records; eligibility refuses typed for unpublished/withdrawn/hash/verification/approval/entrypoint failures. Never fabricate an ID, hash, or state.
 - **Events:** dual-write via `soloctl/ucc_events.py`, alongside `_log_import_event`.
 - **Idempotency (M-b, D2, done):** `soloctl/idempotent_import.py` wraps `perform_import` — opt in via
   `import --idempotency-key <key>`. Builds+validates `ucc.request`/`ucc.result`; replay returns the
@@ -118,14 +107,10 @@ table (D1–D6) or its conflict-resolution table.
   another repo" contract. Distinct from nodectl's now-corrected `backend/ledger.py`, whose header
   used to (falsely) claim exactly that kind of live sync with this file.
 - **Tests:** `pytest`.
-- **Pending:** promote `main` to the default branch before peers pin a dep (GitHub repo-settings
-  action, not a file change — needs push/admin access this session didn't have).
+- **Pending:** review and merge the paired S2-1 contracts/Artifact-compiler branches; do not cut or move `v0.3.0` until S2-C is complete.
 
 ---
 
 ## 4. Out of scope (do not do here)
 
-Real cross-module adapters; canonical record stores; the ~26 domain schemas; projection builder;
-UCC application services; broker / network API / server DB; repo merges; multi-operator auth; any
-general remote terminal in a trusted path; frontend or deployment-topology decisions. All of these
-are Stage 2 or a later roadmap. If a task seems to require one, stop and flag it against the roadmap.
+Canonical records owned by another module; schemas outside the active S2 step; projection builder; UCC application services; broker / network API / server DB; repo merges; multi-operator auth; any general remote terminal in a trusted path; frontend or deployment-topology decisions. These belong to later Stage 2 steps or later roadmaps. If a task seems to require one, stop and flag it against the roadmap.

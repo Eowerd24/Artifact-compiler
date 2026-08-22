@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/artifact-revision.schema.json",
+  "title": "ucc.artifact-revision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "schema_version", "id", "created_at", "created_by", "record_version",
+    "artifact_id", "artifact_type", "content_hash", "manifest_path", "content_reference",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {"const": "ucc.artifact-revision"},
+    "schema_version": {"const": 1},
+    "id": {
+      "allOf": [
+        {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+        {"pattern": "^rev_"}
+      ]
+    },
+    "created_at": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"},
+    "created_by": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+    "record_version": {"const": 1},
+    "artifact_id": {
+      "allOf": [
+        {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"},
+        {"pattern": "^art_"}
+      ]
+    },
+    "artifact_type": {"const": "script"},
+    "content_hash": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"},
+    "manifest_path": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"},
+    "content_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["store_id", "relative_path", "content_hash"],
+      "properties": {
+        "store_id": {"const": "artifact-compiler"},
+        "relative_path": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"},
+        "content_hash": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "source_hash"],
+      "properties": {
+        "source_kind": {
+          "type": "string",
+          "enum": ["material", "workspace_checkpoint", "operator_input"]
+        },
+        "source_ref": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"},
+        "source_hash": {"$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"}
+      }
+    }
+  }
+}

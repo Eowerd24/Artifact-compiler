@@ -65,16 +65,22 @@ invalid fixtures before Phase 0 artifacts close:
 `ucc.vm-factory-asset`, `ucc.large-data-reference`, plus the domain records
 `ucc.project`, `ucc.job`, `ucc.assignment`, `ucc.node`, `ucc.node-manifest`,
 `ucc.node-allocation`, `ucc.execution`, `ucc.handback`, `ucc.report`,
-`ucc.credential-lease`, `ucc.health-observation`, `ucc.quarantine`,
-`ucc.artifact`, `ucc.artifact-revision`, `ucc.verification`, `ucc.approval`.
+`ucc.credential-lease`, `ucc.health-observation`, and `ucc.quarantine`.
 
 Already present: `common`, `request`, `result`, `problem`, `event`,
-`module-health`, `artifact-content-manifest`, `publication`,
-`execution-request`.
+`module-health`, `artifact`, `artifact-revision`, `artifact-content-manifest`,
+`verification`, `approval`, `publication`, and `execution-request`.
+
+### Deferred to a future contract release (v0.3.0)
+
+- Promote the `IN_FLIGHT` idempotency state into the shared `evaluate_idempotency` helper.
+  Stage 1 implemented it correctly at each owner's store boundary (application code) to
+  avoid a local edit of the pinned, immutable v0.2.0 vendored helper (re-audit DC-001).
+  When v0.3.0 ships, move it into the helper and re-vendor.
 
 ## Test
 
 ```
 pip install -e ".[test]"
-pytest -q          # 41 passing
+pytest -q          # 65 passing
 ```

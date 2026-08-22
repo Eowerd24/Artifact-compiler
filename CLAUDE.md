@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code in this repository. This is a UCC Stage-1 repo
+Guidance for Claude Code in this repository. This is the standalone-usable Artifact Compiler on the post-fork S2-1 line
 (`nodectl` / `Artifact-compiler` / `VM-Factory` — this file ships in all three).
 
 ## Read these first (authoritative, in precedence order)
@@ -17,17 +17,14 @@ vendored `ucc-contracts` disagrees with any prose, the code wins.
 
 ## The five things to never get wrong
 
-1. **Fork scope is NARROW** — no UCC product, no repo merge, no broker/service/DB,
-   no real cross-module adapters. That's Stage 2. (AGENTS.md §1.1)
+1. **Stage 2 scope is NARROW** — S2-1 may add AC-owned records and the real in-process `ArtifactPort`; no UCC product, repo merge, broker/network service/server DB, or cross-owner canonical writes. (AGENTS.md §1.1)
 2. **Fail closed over fabricate** — refuse with a typed `ucc.problem` rather than
    invent an ID, hash, token, or state. (AGENTS.md §1.2)
 3. **Don't cross the fences** — the standalone-only infra/shell paths listed in
    AGENTS.md must never be reached from a port. Fence tests are **AST-based**;
    never weaken one to a substring match to make it pass. (AGENTS.md §1.3–1.4)
-4. **`ucc-contracts` is vendored + pinned** — never hand-edit its schemas, IDs,
-   lifecycle tables, or refusal codes locally. (AGENTS.md §1.5)
-5. **Six-field format for every change**, delivered as patches (clones are
-   read-only). Keep the repo independently runnable and green. (AGENTS.md §1.7–1.8)
+4. **`ucc-contracts` is vendored + pinned** — never hand-edit it locally. This branch pins upstream development commit `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`; released branches advance only by immutable tags. (AGENTS.md §1.5)
+5. **Six-field format for every change**, delivered on reviewed branches with exact dependency pins. Keep the repo independently runnable and green. (AGENTS.md §1.7–1.8)
 
 ## Working notes for Claude Code
 
@@ -48,6 +45,4 @@ vendored `ucc-contracts` disagrees with any prose, the code wins.
 
 ## Out of scope
 
-See AGENTS.md §4. If a task appears to need a real adapter, canonical records, the
-domain schemas, a projection builder, or any networked component, stop and flag it
-against the roadmap rather than building it.
+See AGENTS.md §4. S2-1’s AC-owned records and real `ArtifactPort` are authorized; records owned by other modules, unrelated schemas, the projection builder, UCC services, and networked components remain out of scope.
