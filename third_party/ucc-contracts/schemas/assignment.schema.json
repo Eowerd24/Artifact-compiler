@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/assignment.schema.json",
+  "title": "ucc.assignment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "job_id",
+    "target_capability",
+    "assignment_phase"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.assignment"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^asn_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "job_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^job_"
+        }
+      ]
+    },
+    "target_capability": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assignment_phase": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "accepted",
+        "refused",
+        "active",
+        "releasing",
+        "released"
+      ]
+    },
+    "allocated_node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    }
+  }
+}

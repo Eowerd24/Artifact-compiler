@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/promotion.schema.json",
+  "title": "ucc.promotion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "source_entity",
+    "destination_entity",
+    "status",
+    "promoted_at",
+    "promoted_by"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.promotion"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^ver_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_entity": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"
+    },
+    "destination_entity": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "promoted",
+        "failed",
+        "quarantined"
+      ]
+    },
+    "promoted_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "promoted_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    }
+  }
+}

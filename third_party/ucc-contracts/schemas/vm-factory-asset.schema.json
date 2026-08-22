@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/vm-factory-asset.schema.json",
+  "title": "ucc.vm-factory-asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "name",
+    "asset_kind",
+    "version",
+    "content_hash",
+    "relative_path"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.vm-factory-asset"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^act_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "asset_kind": {
+      "type": "string",
+      "enum": [
+        "packaged",
+        "operator_material",
+        "repository_snapshot",
+        "generated"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content_hash": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    },
+    "relative_path": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+    }
+  }
+}

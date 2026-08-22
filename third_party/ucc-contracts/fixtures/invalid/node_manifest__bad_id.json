@@ -1,0 +1,23 @@
+{
+  "schema": "ucc.node-manifest",
+  "schema_version": 1,
+  "id": "bad-id-not-ulid",
+  "created_at": "2026-08-22T12:00:00.000Z",
+  "created_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QA",
+  "record_version": 1,
+  "name": "worker-node-1",
+  "arch": "x86_64",
+  "cpu_cores": 4,
+  "ram_mb": 8192,
+  "disk_gb": 50,
+  "ip": "192.168.122.50",
+  "ssh_port": 22,
+  "ssh_user": "ucc-worker",
+  "ssh_key_path": "secrets/worker.key",
+  "tags": [
+    "linux"
+  ],
+  "capabilities": [
+    "python3.12"
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/large-data-reference.schema.json",
+  "title": "ucc.large-data-reference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "store_id",
+    "object_kind",
+    "object_id",
+    "relative_path",
+    "size_bytes",
+    "sha256",
+    "availability"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.large-data-reference"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^img_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "store_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "object_kind": {
+      "type": "string",
+      "enum": [
+        "vm-images",
+        "snapshots",
+        "repository-mirrors",
+        "object-store"
+      ]
+    },
+    "object_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relative_path": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sha256": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "online",
+        "offline",
+        "degraded"
+      ]
+    }
+  }
+}

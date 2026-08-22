@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/repository.schema.json",
+  "title": "ucc.repository",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "name",
+    "remote_url",
+    "default_branch"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.repository"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^col_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "remote_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "credential_ref": {
+      "type": "string"
+    },
+    "default_branch": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

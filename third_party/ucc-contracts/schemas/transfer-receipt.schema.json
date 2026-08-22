@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/transfer-receipt.schema.json",
+  "title": "ucc.transfer-receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "transfer_id",
+    "node_id",
+    "receipt_type",
+    "sha256",
+    "recorded_at"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.transfer-receipt"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^rpt_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "transfer_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^xfer_"
+        }
+      ]
+    },
+    "node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "receipt_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha256": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recorded_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    }
+  }
+}

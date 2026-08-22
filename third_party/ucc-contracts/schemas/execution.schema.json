@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/execution.schema.json",
+  "title": "ucc.execution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "node_id",
+    "allocation_id",
+    "execution_phase",
+    "input_kind",
+    "input_ref",
+    "entrypoint"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.execution"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^exec_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "allocation_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^nalloc_"
+        }
+      ]
+    },
+    "execution_phase": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "staging",
+        "ready",
+        "running",
+        "finalizing",
+        "completed"
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "failed",
+        "cancelled",
+        "timed_out",
+        "lost",
+        "refused",
+        "unknown"
+      ]
+    },
+    "input_kind": {
+      "type": "string",
+      "enum": [
+        "published_artifact_revision",
+        "workspace_checkpoint",
+        "vm_factory_operational_asset"
+      ]
+    },
+    "input_ref": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"
+    },
+    "entrypoint": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+    },
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "started_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "completed_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "exit_code": {
+      "type": "integer"
+    }
+  }
+}

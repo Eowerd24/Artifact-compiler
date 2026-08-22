@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/workspace-checkpoint.schema.json",
+  "title": "ucc.workspace-checkpoint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "workspace_id",
+    "checkpoint_hash",
+    "content_reference"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.workspace-checkpoint"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^snap_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workspace_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^col_"
+        }
+      ]
+    },
+    "checkpoint_hash": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    },
+    "content_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store_id",
+        "relative_path",
+        "content_hash"
+      ],
+      "properties": {
+        "store_id": {
+          "type": "string"
+        },
+        "relative_path": {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+        },
+        "content_hash": {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+        }
+      }
+    }
+  }
+}

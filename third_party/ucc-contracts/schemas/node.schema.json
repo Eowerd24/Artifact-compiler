@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/node.schema.json",
+  "title": "ucc.node",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "display_name",
+    "provider_kind",
+    "provider_ref",
+    "provisioning_phase",
+    "runtime_state",
+    "readiness",
+    "allocation_phase",
+    "health",
+    "lifecycle",
+    "quarantine_state"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.node"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "provider_kind": {
+      "type": "string",
+      "enum": [
+        "libvirt",
+        "mock",
+        "manual",
+        "cloud"
+      ]
+    },
+    "provider_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provisioning_phase": {
+      "type": "string",
+      "enum": [
+        "unprovisioned",
+        "provisioning",
+        "provisioned",
+        "deprovisioning",
+        "deprovisioned",
+        "failed"
+      ]
+    },
+    "runtime_state": {
+      "type": "string",
+      "enum": [
+        "running",
+        "shut_off",
+        "paused",
+        "crashed",
+        "unknown"
+      ]
+    },
+    "readiness": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "not_ready",
+        "busy",
+        "maintenance",
+        "quarantined"
+      ]
+    },
+    "allocation_phase": {
+      "type": "string",
+      "enum": [
+        "unallocated",
+        "reserved",
+        "active",
+        "releasing",
+        "released"
+      ]
+    },
+    "health": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "degraded",
+        "unavailable",
+        "unknown"
+      ]
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "active",
+        "retired",
+        "tombstoned"
+      ]
+    },
+    "quarantine_state": {
+      "type": "string",
+      "enum": [
+        "not_quarantined",
+        "quarantined",
+        "release_requested",
+        "released",
+        "reset_required",
+        "destroyed"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

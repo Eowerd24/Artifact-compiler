@@ -21,6 +21,7 @@ from .idempotency import (
     StoredIdempotencyRecord,
     evaluate_idempotency,
     idempotency_conflict_problem,
+    outcome_unknown_problem,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "load_transitions", "is_legal_transition", "TransitionError",
     "IdempotencyOutcome", "StoredIdempotencyRecord",
     "evaluate_idempotency", "idempotency_conflict_problem",
+    "outcome_unknown_problem",
 ]

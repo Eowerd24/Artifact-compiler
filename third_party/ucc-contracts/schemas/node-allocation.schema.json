@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/node-allocation.schema.json",
+  "title": "ucc.node-allocation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "node_id",
+    "operation_id",
+    "allocation_phase",
+    "allocated_to",
+    "allocated_at",
+    "purpose"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.node-allocation"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^nalloc_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "assignment_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^asn_"
+        }
+      ]
+    },
+    "job_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^job_"
+        }
+      ]
+    },
+    "operation_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^op_"
+        }
+      ]
+    },
+    "allocation_phase": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "active",
+        "releasing",
+        "released",
+        "refused",
+        "expired",
+        "lost"
+      ]
+    },
+    "allocated_to": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^act_"
+        }
+      ]
+    },
+    "allocated_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "released_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    }
+  }
+}

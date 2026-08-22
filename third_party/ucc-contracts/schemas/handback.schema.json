@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/handback.schema.json",
+  "title": "ucc.handback",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "execution_id",
+    "node_id",
+    "handback_phase",
+    "manifest_hash"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.handback"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^hb_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "execution_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^exec_"
+        }
+      ]
+    },
+    "node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "handback_phase": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "committed_on_node",
+        "collecting",
+        "collected",
+        "validating",
+        "verified",
+        "rejected",
+        "acknowledged"
+      ]
+    },
+    "manifest_hash": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    },
+    "outputs_hash": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    },
+    "collected_paths": {
+      "type": "array",
+      "items": {
+        "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+      }
+    },
+    "committed_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "collected_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "verified_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    }
+  }
+}

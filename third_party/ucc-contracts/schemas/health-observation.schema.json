@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/health-observation.schema.json",
+  "title": "ucc.health-observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "node_id",
+    "observed_at",
+    "health",
+    "runtime_state",
+    "freshness_seconds"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.health-observation"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^rpt_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "observed_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "health": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "degraded",
+        "unavailable",
+        "unknown"
+      ]
+    },
+    "runtime_state": {
+      "type": "string",
+      "enum": [
+        "running",
+        "shut_off",
+        "paused",
+        "crashed",
+        "unknown"
+      ]
+    },
+    "freshness_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "details": {
+      "type": "object"
+    }
+  }
+}

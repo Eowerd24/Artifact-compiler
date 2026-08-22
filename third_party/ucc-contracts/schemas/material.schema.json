@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/material.schema.json",
+  "title": "ucc.material",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "material_type",
+    "name",
+    "uri_or_path"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.material"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^col_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "material_type": {
+      "type": "string",
+      "enum": [
+        "sources",
+        "repositories",
+        "workspaces",
+        "checkpoints",
+        "collections"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "uri_or_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content_hash": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    }
+  }
+}

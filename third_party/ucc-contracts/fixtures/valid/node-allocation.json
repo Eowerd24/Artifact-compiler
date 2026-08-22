@@ -1,0 +1,16 @@
+{
+  "schema": "ucc.node-allocation",
+  "schema_version": 1,
+  "id": "nalloc_01K0A6R4V8W6E3M4M8Y0R9J2QN",
+  "created_at": "2026-08-22T12:00:00.000Z",
+  "created_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QA",
+  "record_version": 1,
+  "node_id": "node_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "assignment_id": "asn_01K0A6R4V8W6E3M4M8Y0R9J2QS",
+  "job_id": "job_01K0A6R4V8W6E3M4M8Y0R9J2QJ",
+  "operation_id": "op_01K0A6R4V8W6E3M4M8Y0R9J2Q0",
+  "allocation_phase": "reserved",
+  "allocated_to": "act_01K0A6R4V8W6E3M4M8Y0R9J2QA",
+  "allocated_at": "2026-08-22T12:00:00.000Z",
+  "purpose": "Execute test job"
+}
