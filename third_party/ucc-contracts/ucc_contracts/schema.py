@@ -44,15 +44,20 @@ def load_schema(name: str) -> dict[str, Any]:
 
 def _resolver_validator(schema: dict) -> Draft202012Validator:
     # Local $ref resolution across sibling schemas via the modern referencing
-    # registry (jsonschema >= 4.18). Every schema is registered under its $id.
-    from referencing import Registry, Resource
+    # registry (jsonschema >= 4.18) with fallback to RefResolver.
+    try:
+        from referencing import Registry, Resource
 
-    resources = [
-        (doc["$id"], Resource.from_contents(doc))
-        for doc in _registry().values()
-    ]
-    registry = Registry().with_resources(resources)
-    return Draft202012Validator(schema, registry=registry)
+        resources = [
+            (doc["$id"], Resource.from_contents(doc))
+            for doc in _registry().values()
+        ]
+        registry = Registry().with_resources(resources)
+        return Draft202012Validator(schema, registry=registry)
+    except (ImportError, TypeError):
+        from jsonschema import RefResolver
+        resolver = RefResolver(base_uri=schema.get("$id", ""), referrer=schema, store=_registry())
+        return Draft202012Validator(schema, resolver=resolver)
 
 
 def validate_document(name: str, document: dict) -> None:

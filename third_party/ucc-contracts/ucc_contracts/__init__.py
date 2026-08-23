@@ -24,7 +24,10 @@ from .idempotency import (
     outcome_unknown_problem,
 )
 
+__version__ = "0.3.0"
+
 __all__ = [
+    "__version__",
     "ID_PREFIXES", "new_id", "is_valid_id", "parse_id",
     "is_valid_hash", "is_safe_relpath",
     "load_schema", "validate_document", "SchemaValidationError",

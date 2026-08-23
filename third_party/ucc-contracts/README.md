@@ -53,34 +53,32 @@ contracts:
 | ID generation | UUIDv7 "likely" (shared-data-language draft) | **Prefixed Crockford ULID** (locked Decisions 1-of-2 §1.8) |
 | Transfer lifecycle | SPEC-001 §E.6 variant | **UCC-Remaining-Baseline §3** state set |
 
-## Remaining schemas to author (same pattern)
+## Schemas and fixtures
 
-This slice locks the load-bearing core + the vertical-proof path. The following
-schemas from Roadmap WS1 / 2-of-2 §F.18 are queued and each needs valid +
-invalid fixtures before Phase 0 artifacts close:
+All Stage-2 schemas defined in Roadmap WS1 / 2-of-2 §F.18 are present, each paired with
+authoritative valid and invalid fixtures under `fixtures/`:
 
+`ucc.common`, `ucc.request`, `ucc.result`, `ucc.problem`, `ucc.event`, `ucc.module-health`,
+`ucc.artifact`, `ucc.artifact-revision`, `ucc.artifact-content-manifest`,
+`ucc.verification`, `ucc.approval`, `ucc.publication`, `ucc.execution-request`,
 `ucc.transfer`, `ucc.transfer-receipt`, `ucc.promotion`, `ucc.material`,
 `ucc.repository`, `ucc.repository-snapshot`, `ucc.workspace`,
 `ucc.workspace-checkpoint`, `ucc.material-collection`, `ucc.command-definition`,
-`ucc.vm-factory-asset`, `ucc.large-data-reference`, plus the domain records
-`ucc.project`, `ucc.job`, `ucc.assignment`, `ucc.node`, `ucc.node-manifest`,
-`ucc.node-allocation`, `ucc.execution`, `ucc.handback`, `ucc.report`,
-`ucc.credential-lease`, `ucc.health-observation`, and `ucc.quarantine`.
+`ucc.vm-factory-asset`, `ucc.large-data-reference`, `ucc.project`, `ucc.job`,
+`ucc.assignment`, `ucc.node`, `ucc.node-manifest`, `ucc.node-allocation`,
+`ucc.execution`, `ucc.handback`, `ucc.report`, `ucc.credential-lease`,
+`ucc.health-observation`, and `ucc.quarantine`.
 
-Already present: `common`, `request`, `result`, `problem`, `event`,
-`module-health`, `artifact`, `artifact-revision`, `artifact-content-manifest`,
-`verification`, `approval`, `publication`, and `execution-request`.
+### Idempotency helper (v0.3.0)
 
-### Deferred to a future contract release (v0.3.0)
-
-- Promote the `IN_FLIGHT` idempotency state into the shared `evaluate_idempotency` helper.
-  Stage 1 implemented it correctly at each owner's store boundary (application code) to
-  avoid a local edit of the pinned, immutable v0.2.0 vendored helper (re-audit DC-001).
-  When v0.3.0 ships, move it into the helper and re-vendor.
+The `IN_FLIGHT` idempotency state is implemented in the shared `evaluate_idempotency`
+helper (DC-001 / S2-C). When an existing operation record has an unknown disposition,
+evaluation returns `IdempotencyOutcome.IN_FLIGHT`, allowing callers to refuse retries
+with a typed `outcome_unknown` problem until reconciliation.
 
 ## Test
 
 ```
 pip install -e ".[test]"
-pytest -q          # 65 passing
+PYTHONPATH=. pytest -q
 ```

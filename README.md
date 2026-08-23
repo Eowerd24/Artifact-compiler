@@ -125,7 +125,7 @@ content — including fenced code blocks — is preserved exactly.
 
 ## UCC conformance
 
-Uses the immutable **ucc-contracts v0.2.0** release baseline plus the additive S2-1 contract development pin **56e2efc6024d9de032350fa061d2ec9a6cedb9a8**. The exact D8 export set is vendored at
+Uses the **ucc-contracts v0.3.0** contracts release. The exact D8 export set is vendored at
 `third_party/ucc-contracts/` (schemas, lifecycle transition tables, ID/hash/path
 primitives — no domain code). `tests/contracts/` asserts this repo's own
 (de)serialization and validation matches the pinned contracts exactly;
@@ -137,7 +137,7 @@ the legacy `transcript.import` ledger event in `library/events.jsonl`.
 
 This remains a standalone-usable Artifact Compiler, now carrying the additive S2-1 owner-side record store and real in-process `ArtifactPort`. It is *not* the UCC product, a network service, or a cross-owner canonical writer.
 
-- **Shared contracts:** release baseline `v0.2.0`; S2-1 development pin `56e2efc6024d9de032350fa061d2ec9a6cedb9a8` pending the deliberate `v0.3.0` release. The vendor is copied only from upstream, never hand-edited.
+- **Shared contracts:** `ucc-contracts v0.3.0`. The vendor is copied only from upstream, never hand-edited.
 - **Entity IDs:** S2-1 Artifact mutations and events use real `art_`/`rev_`/`ver_`/`apr_`/`pub_` ULIDs. Legacy transcript-import events still use the documented operation subject until S2-5 completes the remaining D4 cutover.
 - **Events are dual-written:** the legacy ledger *and* a schema-conformant `ucc.event`
   stream. Neither replaces the other yet.
