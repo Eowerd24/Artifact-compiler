@@ -12,7 +12,7 @@ def test_tracked_vendor_export_set_is_exact():
     ).stdout.splitlines()
     relative = [PurePosixPath(path.removeprefix(prefix)) for path in tracked]
     expected = {
-        "ucc_contracts", "schemas", "fixtures", "transitions",
+        "ucc_contracts", 
         "pyproject.toml", "README.md", "VENDOR-MANIFEST.md",
     }
     assert all((root / prefix / item).exists() for item in expected)

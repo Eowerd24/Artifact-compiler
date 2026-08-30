@@ -23,8 +23,8 @@ from ucc_contracts import (
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 VENDORED = REPO_ROOT / "third_party" / "ucc-contracts"
-VALID = VENDORED / "fixtures" / "valid"
-INVALID = VENDORED / "fixtures" / "invalid"
+VALID = VENDORED / "ucc_contracts" / "fixtures" / "valid"
+INVALID = VENDORED / "ucc_contracts" / "fixtures" / "invalid"
 
 VALID_CASES = sorted(p for p in VALID.glob("*.json"))
 INVALID_INDEX = json.loads((INVALID / "_index.json").read_text())

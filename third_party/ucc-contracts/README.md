@@ -69,7 +69,7 @@ authoritative valid and invalid fixtures under `fixtures/`:
 `ucc.execution`, `ucc.handback`, `ucc.report`, `ucc.credential-lease`,
 `ucc.health-observation`, and `ucc.quarantine`.
 
-### Idempotency helper (v0.3.0)
+### Idempotency helper (v0.3.1)
 
 The `IN_FLIGHT` idempotency state is implemented in the shared `evaluate_idempotency`
 helper (DC-001 / S2-C). When an existing operation record has an unknown disposition,
