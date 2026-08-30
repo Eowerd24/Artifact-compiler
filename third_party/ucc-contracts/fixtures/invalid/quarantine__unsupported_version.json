@@ -1,0 +1,12 @@
+{
+  "schema": "ucc.quarantine",
+  "schema_version": 99,
+  "id": "rpt_01K0A6R4V8W6E3M4M8Y0R9J2QQ",
+  "created_at": "2026-08-22T12:00:00.000Z",
+  "created_by": "act_01K0A6R4V8W6E3M4M8Y0R9J2QA",
+  "record_version": 1,
+  "node_id": "node_01K0A6R4V8W6E3M4M8Y0R9J2QX",
+  "quarantine_state": "quarantined",
+  "reason": "Credential lease cleanup failed",
+  "quarantined_at": "2026-08-22T12:00:00.000Z"
+}

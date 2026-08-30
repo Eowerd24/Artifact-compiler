@@ -84,7 +84,7 @@ def perform_import_idempotent(
     operation_id = new_id("op")
     correlation_id = new_id("corr")
 
-    if outcome == IdempotencyOutcome.REPLAY and stored.disposition == "unknown":
+    if outcome == IdempotencyOutcome.IN_FLIGHT or (outcome == IdempotencyOutcome.REPLAY and stored.disposition == "unknown"):
         raise OutcomeUnknown(_outcome_unknown_problem(
             request_id=request_id, operation_id=operation_id,
             correlation_id=correlation_id))

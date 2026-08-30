@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/command-definition.schema.json",
+  "title": "ucc.command-definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "name",
+    "implementation_kind"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.command-definition"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^op_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "implementation_kind": {
+      "type": "string",
+      "enum": [
+        "ucc_builtin",
+        "published_artifact_revision",
+        "vm_factory_operation",
+        "external_adapter"
+      ]
+    },
+    "artifact_ref": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"
+    },
+    "revision_ref": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"
+    },
+    "publication_ref": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/entityRef"
+    },
+    "entrypoint": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+    },
+    "parameters_schema": {
+      "type": "object"
+    }
+  }
+}

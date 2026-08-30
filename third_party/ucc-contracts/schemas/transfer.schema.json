@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ucc.dev/schemas/transfer.schema.json",
+  "title": "ucc.transfer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "id",
+    "created_at",
+    "created_by",
+    "record_version",
+    "direction",
+    "node_id",
+    "source_path",
+    "destination_path",
+    "transfer_phase",
+    "content_hash"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ucc.transfer"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^xfer_"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/timestamp"
+    },
+    "created_by": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "controller_to_node",
+        "node_to_controller"
+      ]
+    },
+    "node_id": {
+      "allOf": [
+        {
+          "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/id"
+        },
+        {
+          "pattern": "^node_"
+        }
+      ]
+    },
+    "source_path": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+    },
+    "destination_path": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/relpath"
+    },
+    "transfer_phase": {
+      "type": "string",
+      "enum": [
+        "created",
+        "receiving",
+        "sending",
+        "validating",
+        "validated",
+        "semantic_review",
+        "accepted",
+        "rejected",
+        "quarantined",
+        "promoted",
+        "closed"
+      ]
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "content_hash": {
+      "$ref": "https://ucc.dev/schemas/common.schema.json#/$defs/hash"
+    }
+  }
+}
