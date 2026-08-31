@@ -52,6 +52,7 @@ class ArtifactRecordStore:
         self.revisions = self.root / "revisions"
         self.verifications = self.root / "verifications"
         self.approvals = self.root / "approvals"
+        self.reviews = self.root / "reviews"
         self.publications = self.root / "publications"
         self.lock_path = self.root / ".records.lock"
 
@@ -478,23 +479,28 @@ class ArtifactRecordStore:
 
     def governance(
         self, revision_id: str, content_hash: str
-    ) -> tuple[dict | None, dict | None]:
+    ) -> tuple[dict | None, dict | None, dict | None]:
         verification = self._latest_record(self.verifications / revision_id)
         approval = self._latest_record(self.approvals / revision_id)
+        review = self._latest_record(self.reviews / revision_id)
+        
         if verification is not None:
             validate_document("verification", verification)
         if approval is not None:
             validate_document("approval", approval)
-        for label, record in (("verification", verification), ("approval", approval)):
+        if review is not None:
+            validate_document("review", review)
+            
+        for label, record in (("verification", verification), ("approval", approval), ("review", review)):
             if record is not None and (
                 record["revision_id"] != revision_id
-                or record["content_hash"] != content_hash
+                or record.get("content_hash", content_hash) != content_hash
             ):
                 raise ArtifactStoreRefusal(
                     RefusalCode.SECURITY_VIOLATION,
                     f"{label} record is not bound to the requested revision",
                 )
-        return verification, approval
+        return verification, approval, review
 
     def publication_for(self, revision_id: str, channel: str) -> dict | None:
         matches = []
@@ -528,7 +534,7 @@ class ArtifactRecordStore:
                     RefusalCode.PUBLICATION_WITHDRAWN,
                     "the exact revision publication was withdrawn",
                 )
-            verification, approval = self.governance(revision_id, revision["content_hash"])
+            verification, approval, review = self.governance(revision_id, revision["content_hash"])
             if verification is None or verification["verification_state"] not in {
                 "not_required", "passed"
             }:
@@ -581,3 +587,37 @@ class ArtifactRecordStore:
                 self._publication_path(publication_id), "publication", publication
             )
             return publication
+
+
+    def record_review(self, request: dict) -> dict:
+        revision_id = self._require_id(request.get("revision_id"), "rev", "revision_id")
+        actor_id = self._require_id(request.get("created_by"), "act", "created_by")
+        state = request.get("review_state", "pending")
+        with self.locked():
+            revision, _ = self.revision_with_manifest(revision_id)
+            review = {
+                "schema": "ucc.review",
+                "schema_version": 1,
+                "id": new_id("rvw"),
+                "created_at": now_iso(),
+                "created_by": actor_id,
+                "record_version": 1,
+                "revision_id": revision_id,
+                "content_hash": revision["content_hash"],
+                "review_state": state,
+            }
+            if request.get("notes") is not None:
+                review["notes"] = self._require_text(request["notes"], "notes")
+            try:
+                validate_document("review", review)
+            except Exception as exc:
+                raise ArtifactStoreRefusal(
+                    RefusalCode.VALIDATION_ERROR, f"invalid review record: {exc}"
+                ) from exc
+            
+            self._write_document(
+                self.reviews / revision_id / f"{review['id']}.json",
+                "review",
+                review,
+            )
+            return review

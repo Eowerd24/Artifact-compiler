@@ -227,7 +227,7 @@ class SoloctlArtifactPort:
                     RefusalCode.CONTENT_HASH_MISMATCH,
                     "publication content hash does not match the revision",
                 )
-            verification, approval = self.records.governance(
+            verification, approval, review = self.records.governance(
                 request.revision_id, revision["content_hash"]
             )
             if verification is None or verification["verification_state"] not in {
@@ -237,6 +237,17 @@ class SoloctlArtifactPort:
                     RefusalCode.VERIFICATION_FAILED,
                     "revision verification is not eligible for execution",
                 )
+            if request.require_review:
+                if review is None or "review_state" not in review:
+                    raise ArtifactStoreRefusal(
+                        RefusalCode.VERIFICATION_FAILED,
+                        "revision has no review record",
+                    )
+                if review["review_state"] != "accepted":
+                    raise ArtifactStoreRefusal(
+                        RefusalCode.VERIFICATION_FAILED,
+                        "revision review is not accepted",
+                    )
             if approval is None or approval["approval_state"] != "approved":
                 raise ArtifactStoreRefusal(
                     RefusalCode.APPROVAL_REVOKED,
@@ -319,6 +330,21 @@ class SoloctlArtifactPort:
             },
         )
 
+    def record_review(self, request: dict) -> PortResult:
+        return self._mutation(
+            request,
+            operation_type="artifact.record_review",
+            action=lambda: self.records.record_review(request),
+            event_type="artifact.review_recorded",
+            subject_kind="artifact_revision",
+            subject_id=lambda value: value["revision_id"],
+            event_payload=lambda value: {
+                "revision_id": value["revision_id"],
+                "review_id": value["id"],
+                "review_state": value["review_state"],
+            },
+        )
+
     def withdraw_publication(self, request: dict) -> PortResult:
         return self._mutation(
             request,
@@ -342,3 +368,4 @@ def build_artifact_port(
     canonical_root: Path | None = None,
 ) -> ArtifactPort:
     return SoloctlArtifactPort(library_root, canonical_root=canonical_root)
+

@@ -7,7 +7,7 @@ dependencies = [
     "typer>=0.12",
     "markdown-it-py>=3.0",
     "jsonschema>=4.20",
-    "ucc-contracts @ git+https://github.com/Eowerd24/ucc-contracts.git@v0.3.1",
+    "ucc-contracts @ git+https://github.com/Eowerd24/ucc-contracts.git@v0.3.4",
 ]
 
 [project.optional-dependencies]

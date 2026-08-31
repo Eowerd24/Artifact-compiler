@@ -17,7 +17,7 @@ re-sync here if the shared core changes.
 
 ## 0. What this repo is
 
-A standalone-usable Artifact Compiler on the post-fork Stage 2 line. S2-1 additively introduces this owner’s canonical Artifact records and real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: immutable `v0.2.0` plus exact S2-1 development pin `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`, vendored under `third_party/ucc-contracts/` pending the deliberate `v0.3.0` release.
+A standalone-usable Artifact Compiler on the post-fork Stage 2 line. S2-1 additively introduces this owner’s canonical Artifact records and real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: immutable `v0.2.0` plus exact S2-1 development pin `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`, vendored under `third_party/ucc-contracts/` pending the deliberate `v0.3.1` release.
 
 Two documents outrank this file and each other in this order — read them before non-trivial work:
 
@@ -107,7 +107,7 @@ table (D1–D6) or its conflict-resolution table.
   another repo" contract. Distinct from nodectl's now-corrected `backend/ledger.py`, whose header
   used to (falsely) claim exactly that kind of live sync with this file.
 - **Tests:** `pytest`.
-- **Pending:** review and merge the paired S2-1 contracts/Artifact-compiler branches; do not cut or move `v0.3.0` until S2-C is complete.
+- **Pending:** review and merge the paired S2-1 contracts/Artifact-compiler branches; do not cut or move `v0.3.1` until S2-C is complete.
 
 ---
 

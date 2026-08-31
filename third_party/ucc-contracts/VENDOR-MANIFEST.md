@@ -16,7 +16,7 @@ Equality rule: every tag-backed file in the export set is byte-identical to the
 pinned tag; this manifest matches the authoritative root copy; no
 excluded path is tracked; all consuming repos' copies are mutually identical.
 
-> Historical note: v0.2.0 remains an immutable tag. For the v0.3.1 release, the
+> Historical note: v0.2.0 remains an immutable tag. For the v0.3.0 release, the
 > vendored export set includes all 26 Stage-2 domain schemas, lifecycle transition
 > tables, and the IN_FLIGHT idempotency helper. Vendor equality is verified by
 > comparing each vendored export-set file to the authoritative root and across all
