@@ -299,6 +299,22 @@ class SoloctlArtifactPort:
             },
         )
 
+
+    def revoke_approval(self, request: dict) -> PortResult:
+        return self._mutation(
+            request,
+            operation_type="artifact.revoke_approval",
+            action=lambda: self.records.revoke_approval(request),
+            event_type="artifact.approval_revoked",
+            subject_kind="artifact_revision",
+            subject_id=lambda value: value["revision_id"],
+            event_payload=lambda value: {
+                "revision_id": value["revision_id"],
+                "approval_id": value["id"],
+                "approval_state": value["approval_state"],
+            },
+        )
+
     def approve_revision(self, request: dict) -> PortResult:
         return self._mutation(
             request,

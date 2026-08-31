@@ -432,6 +432,14 @@ class ArtifactRecordStore:
                 reason=request.get("reason"),
             )
 
+
+    def revoke_approval(self, request: dict) -> dict:
+        request = dict(request)
+        request["approval_state"] = "revoked"
+        if "reason" not in request:
+            request["reason"] = "Revoked"
+        return self.approve_revision(request)
+
     def approve_revision(self, request: dict) -> dict:
         revision_id = self._require_id(request.get("revision_id"), "rev", "revision_id")
         actor_id = self._require_id(request.get("created_by"), "act", "created_by")
