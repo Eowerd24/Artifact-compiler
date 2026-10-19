@@ -80,7 +80,9 @@ Baselines re-cloned and re-run today; all green. G0–G4 are all done; the fork 
 
 ## 2. The shared spine — `ucc-contracts`
 
-**As of v0.2.0, `ucc-contracts` is its own git repo (D3)**, tagged (`v0.1.0` baseline, `v0.2.0` current), vendored into all three repos under `third_party/ucc-contracts/` with the version pinned in each repo's README. Previously it was a bundle of files re-copied by convention with no version history of its own — that gap is closed.
+**As of v0.2.0, `ucc-contracts` is its own git repo (D3)**, tagged (`v0.1.0` baseline; then `v0.2.0`, `v0.3.0`, `v0.3.1`, `v0.3.2`, `v0.3.3`, `v0.3.4` — upstream `main` is at `v0.3.4` as of 2026-10-19), vendored into all three repos under `third_party/ucc-contracts/` with the version pinned in each repo's README. Previously it was a bundle of files re-copied by convention with no version history of its own — that gap is closed.
+
+**Vendored version (this copy, Artifact-compiler):** `v0.3.0` (tag → commit `4051a353ff558bf925ed690fc54b06e518727092`), byte-identical to that tag; git tree `71dc3aaa8cec9c1f3b65c55f82fa277df51a896f`, the same tree VM-Factory `main` carries. nodectl's vendored version is not verified here. Moving to `v0.3.1`+ is a separate, deliberate re-vendor that has not been done. The v0.3.0 export set contains 37 schema files, including the schemas listed below as remaining to author; that list has not been re-audited against v0.3.0 and is left as written.
 
 **Done (load-bearing core + vertical-proof path):** `common`, `request`, `result`, `problem`, `event`, `module-health`, `artifact-content-manifest`, `publication`, `execution-request` schemas; nine lifecycle tables (job, assignment, node-allocation, execution, transfer, handback, credential-lease, publication, quarantine); `ArtifactPort` + `FactoryPort` DTOs; partitioned `RefusalCode` registry (v0.2.0 adds `node_not_found`, D6); ID/hash/path primitives; idempotency decision helper (v0.2.0, D2 — `evaluate_idempotency()` / `idempotency_conflict_problem()`, pure logic, no storage).
 
