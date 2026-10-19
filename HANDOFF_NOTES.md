@@ -583,3 +583,239 @@ Dry run must keep appending nothing.
 3. WP5: manifest/index, which gives library-level dedup and the
    `library_hashes` source; verification execution; approval of drafts
    (and its `revoked/`/`superseded/` collision namespace).
+
+---
+
+# Work Package 4 (items 4-5) — finished emitters, risk patterns, tags and collections
+
+Built on `main` at `1e8ba10` (WP4 items 1-3 merged). Covers WP3's "Next
+steps for Work Package 4" items 4 and 5. Item 6 (compile event) is still the
+open decision recorded above; nothing here appends an event. Baseline 422
+passed; now 583.
+
+## What was added
+
+- **Verification plans** (data only; execution is WP5) for the four
+  scaffolded emitters:
+  - `powershell.py`: `pwsh-parse` (`[Parser]::ParseFile`, which parses
+    without executing) and `psscriptanalyzer`. Both advisory, so
+    `complete=False`.
+  - `sql.py`: `sql-lexical` (in-process, required) and `sqlfluff parse
+    --dialect <mapped>` (advisory). `complete=True`.
+  - `prompt.py`: `prompt-front-matter`, `prompt-body`, `prompt-placeholders`
+    (in-process, required). `complete=True`.
+  - `runbook.py`: `runbook-front-matter`, `runbook-title`,
+    `runbook-fences-labeled` (markdown-it, required). `complete=True`.
+- **Language risk patterns** in `compiler/extract.py`: `_LANG_RISK` (public
+  as `LANG_RISK_PATTERNS`) for `powershell` (5), `sql` (5) and `python` (4),
+  applied after the generic table, to fences of that language only.
+  `extract(lang_risk_patterns=...)` overrides them.
+- **Render refinements**: a PowerShell body shebang is hoisted to line 1
+  (never added); `#Requires` lines stay in place, are listed in the plan
+  notes (`PowerShellEmitter.requires()`), and are skipped by the PowerShell
+  comment-name fallback. Prompt front matter gains `placeholders: [...]`
+  (`find_placeholders()`), just before `verify-with`.
+- **`emitters/base.py`**: `VerificationPlan.complete` now documents its WP4
+  meaning (below); new helpers `risk_notes()` (Bash/Python switched to it,
+  same output) and `leading_shebang()`; `markdown_front_matter(extra=...)`.
+  The unused `scaffold_plan()` helper was removed.
+- **Tags and collections** (approved design: library-level registries):
+  - `library/refs.py`: references, the generation stamp, containment,
+    and deterministic JSON I/O.
+  - `library/tags.py`: `library/tags.json`.
+  - `library/collections.py`: `library/collections/<name>.json`.
+  - `library/paths.py`: `tags_file`, `collection_file()`.
+  - `errors.py`: `InvalidNameError`, `UnknownArtifactError`,
+    `AmbiguousArtifactError`, `StaleReferenceError`,
+    `UnknownCollectionError`, `CollectionConflictError`,
+    `RegistryCorruptError`, all `LibraryError` subclasses.
+- **CLI**: `soloctl tag add|remove|list` and `soloctl collection
+  create|add|remove|show|list`, thin over the service functions. Every
+  refusal exits `1`.
+- **Tests**: `tests/test_emitter_plans.py` (42), `tests/test_risk_patterns.py`
+  (41), `tests/test_tags_collections.py` (78). In `tests/test_emitters.py`,
+  five assertions that pinned the scaffold state were updated to the new
+  truth: `complete is False and checks == ()` (PowerShell: still
+  incomplete, now with advisory checks), `complete is False` → `True` for
+  SQL/prompt/runbook (runbook's "not designed yet" note → its risk note),
+  and the hostile-front-matter line count 8 → 9 (the `placeholders` line).
+  The scaffold tests were renamed `*_basics`; nothing else in them changed.
+
+## Decisions made where the docs were silent or in tension
+
+- **What `complete` means now.** `complete=True` iff the plan has at least
+  one *required* check, and for these four emitters that check is one
+  soloctl runs in-process. A tool soloctl doesn't depend on is advisory
+  (`required=False`). WP3's Bash plan (`bash -n` + `shellcheck`, both
+  required, external) predates this rule and was left unchanged; WP5
+  should decide whether Bash is held to it too.
+- **PowerShell stays `complete=False`.** Its only real parser is pwsh, so
+  there's no honest in-process check. A brace-balancing "parser" would
+  claim more than it checks. WP5 can promote `pwsh-parse` to required where
+  pwsh is present, which would make the plan complete.
+- **PowerShell argv carries a fixed script.** `pwsh -Command` joins
+  trailing arguments into the command text, so the path would become code.
+  `-CommandWithArgs` (pwsh 7.4+) passes it as `$args[0]` instead. The two
+  scripts are the module constants `PWSH_PARSE_SCRIPT` and `PSSA_SCRIPT`.
+  No artifact content is interpolated into them, and a test proves argv is
+  identical for a benign and a hostile body. `-NoProfile` keeps a user
+  profile from running code.
+- **`ARTIFACT_PATH` is a whole argv element.** The PowerShell scripts
+  contain `{ }`, so WP5 must substitute by element equality, never
+  `str.format`. A test checks every emitter's plan for this.
+- **SQL `sql-lexical` is required although it is not a parse.** The brief
+  asked for an in-process sanity check, and this one catches truncated
+  pastes, which is the common failure. Its description says "Not a parse"
+  so no one reads it as more. The sqlfluff dialect comes from a fixed table
+  (`postgresql|postgres → postgres`, `mysql`, `sqlite`, `tsql`, `ansi`);
+  anything else falls back to `ansi` with a plan note, so a config string
+  never becomes an unvetted argv value.
+- **"No leftover placeholders" vs. prompt templates.** `{input}` in a
+  prompt is intentional, so the lint can't ban placeholders. The emitter
+  declares them in front matter, and the lint fails on any undeclared
+  `{name}`/`{{ name }}`, any declared-but-unused one, or editorial
+  fill-ins (TODO, TBD, FIXME, `[insert …]`, `<insert …>`). JSON
+  examples, `{0}`, and shell `${HOME}` are not placeholders. The key is
+  always present (`[]` = none found).
+- **Risk-pattern scope.** The Bash table keeps applying to every language
+  (unchanged behavior); language tables are additive. `run-as-admin`
+  (`#Requires -RunAsAdministrator`, `-Verb RunAs`) wasn't in the brief; I
+  added it as PowerShell's `sudo`. DELETE/UPDATE "without WHERE" means no
+  `WHERE` from a statement start (line start or `;`) to the next `;`, which
+  keeps `ON DELETE CASCADE` from flagging.
+- **Tags/collections: registry files** (operator-approved). D3 governs an
+  artifact's compile-time metadata (header/front matter, no per-artifact
+  sidecars), and §6 forbids in-place edits; library-level `tags.json` and
+  `collections/<name>.json` are neither, and tagging never changes an
+  artifact's bytes (tested).
+- **References are `<kind>/<filename>` + the `compiled:` header value.**
+  Collision resolution already makes a name unique across `drafts/<kind>/`
+  and `approved/<kind>/`, so the ref survives approval moving the file.
+  All artifacts from one compile run share one stamp (the run timestamp),
+  so the stamp identifies the run; with the ref, that is unique. A stamp
+  mismatch is `stale`: never re-attached, `add` refuses, `remove` still
+  works. No `art_`/`col_` ID is invented (AGENTS.md §1.2). Only the header
+  is read for the stamp; a `compiled:` line in the body never counts.
+- **Idempotence rules.** Duplicate add, absent remove and re-create with
+  the same (or no) metadata are no-ops that write nothing. `remove` refuses
+  only if the artifact is unknown to both the registry and the disk.
+  `collection add` checks every argument before writing (all-or-nothing).
+  Invalid names are refused with a suggested slug, never rewritten.
+- **Files in `collections/` that aren't `<valid-name>.json`** (READMEs,
+  crash-left `.tmp` files) are ignored by `list`; a corrupt collection file
+  is refused, and corrupt registries are never overwritten.
+- **Not a UCC schema change.** `soloctl.tags/1` and `soloctl.collection/1`
+  are local file formats, not `ucc-contracts` schemas, so CLAUDE.md's
+  "update the roadmap §2/§8 and standards §17" rule isn't engaged.
+
+## What was verified, not just asserted
+
+- **Mutation-checked, Part A (23/23 caught)**:
+  1. Bash given a language table
+  2. language tables applied to every language
+  3. DELETE ignoring WHERE
+  4. DELETE not anchored to a statement start
+  5. eval/exec lookbehind dropped
+  6. remove-recurse-force needing only `-Recurse`
+  7. flag dedupe removed
+  8. `#Requires` name skip removed
+  9. that skip leaking into Bash
+  10. `pwsh-parse` made required
+  11. PowerShell plan claiming complete
+  12. artifact content interpolated into the pwsh script
+  13. the path token embedded in a script
+  14. shebang not hoisted
+  15. shebang left in the body
+  16. `#Requires` not noted
+  17. `sql-lexical` not required
+  18. unknown dialect passed through to sqlfluff
+  19. SQL risk notes dropped
+  20. placeholders missing from front matter
+  21. `${x}` treated as a placeholder
+  22. placeholder dedupe removed
+  23. runbook complete with no required check
+- **Mutation-checked, Part B (18/18 caught)**:
+  1. stamp guard skipped
+  2. status ignoring the stamp
+  3. a no-op that writes
+  4. ref regex letting paths through
+  5. `locate` bypassing `LibraryPaths.resolve` (symlink escape)
+  6. names accepting upper case
+  7. `collection add` skipping unknown artifacts
+  8. ambiguity check removed
+  9. `create` clobbering a concurrent create
+  10. create conflict ignored
+  11. corrupt registry read as empty
+  12. `tag remove` accepting unknown artifacts
+  13. stamp read beyond the header
+  14. member dedupe removed
+  15. `tags.py` importing `ucc_events`
+  16. `list` not filtering invalid names
+  17. bad tag names tolerated in `tags.json`
+  18. registry bytes depending on operation order
+
+  One honest note on item 18: mutating only `sorted()` in `_save`, or only
+  `sort_keys` in `write_json_doc`, is not caught, because each alone keeps
+  the order. Breaking both is caught.
+- **Contract-free boundary**: AST check that `refs.py`/`tags.py`/
+  `collections.py` import no edge module, plus a subprocess check that
+  importing them loads none transitively (same rule as `compile.py`).
+- **End to end**: `soloctl compile` on a PowerShell/SQL/prompt transcript
+  produced a hoisted shebang, the `remove-recurse-force` and
+  `delete-no-where` flags, and `placeholders: ["ticket", "team"]`; then
+  every `tag`/`collection` command was run against those drafts, including
+  refusals and a deleted member showing `MISSING`.
+- **Full suite in an independent fresh clone** of the pushed branch.
+- **Not verified**: `pwsh`, `sqlfluff`, `shellcheck` and `ruff` are not
+  installed on the build machine, so the external argv tuples are checked
+  as data only. In particular, the claim that `-CommandWithArgs` needs
+  pwsh 7.4+, and the exact exit-code behavior of `sqlfluff parse`, should be
+  confirmed when WP5 first runs them.
+
+## Known limitations (WP4 items 4-5 scope)
+
+- **The in-process checks are specified, not implemented.**
+  `sql-lexical` and the prompt/runbook lints exist as names and precise
+  descriptions; the code that runs them belongs to the WP5 verification
+  engine (rule 8: verification is separate from emission), just like
+  WP3's `python-ast-parse`.
+- **Risk patterns are dumb regex by design**: SQL patterns match inside
+  comments and string literals; `UPDATE … SET a = (SELECT … WHERE …)` hides
+  a missing outer WHERE; PowerShell download-then-`Start-Process` isn't
+  caught; the generic Bash table can still fire on other languages (e.g.
+  `dd` in a SQL date format), as before.
+- **`library/risk-patterns.toml` still only feeds the generic table.**
+  Per-language TOML tables weren't added.
+- **Tags and collections are filesystem curation, not S2-1 record
+  metadata.** README notes that S2-1 governance is record-based and the
+  `drafts/approved/...` directories are projections. A ref names a file
+  there, not an `art_` record; WP5 decides how a draft becomes a record and
+  must carry curation across explicitly, never infer it.
+- **Lost updates under concurrent writers**: `tags.json` is
+  read-modify-replace. Each write is atomic (no torn file), but two
+  simultaneous `tag add`s can drop one. Single-operator tool; no locking.
+- **Revoked/superseded artifacts read as `missing`**, since nothing moves
+  files there yet. No `collection delete` or rename, and no `compile --tag`.
+
+## Next steps for WP5
+
+1. Verification engine: execute plans; implement `sql-lexical` and the
+   prompt/runbook lints to the descriptions above; substitute
+   `ARTIFACT_PATH` by whole-element equality with an absolute path; treat
+   `complete=False` as "cannot auto-verify". Decide whether `pwsh-parse`
+   becomes required when pwsh is present, and whether Bash's required
+   external checks fit the advisory rule.
+2. Approval must keep `<kind>/<filename>` and rewrite only the `review:`
+   line, so the `compiled:` stamp and every tag/collection ref stay valid
+   without a multi-file write. If approval ever renames, it must rewrite
+   `tags.json` and every collection in the same operation.
+3. Revocation/supersession: teach `refs.status_of` to report `revoked`/
+   `superseded` instead of `missing`; exclude them from the manifest but
+   keep the registry entries. `revoked/` and `superseded/` are flat, so
+   `prompts/foo.md` and `runbooks/foo.md` collide there; fix that layout
+   and add both to the collision namespace.
+4. Manifest/index: read `tags.json` and `collections/*.json` as inputs (they
+   are operator data, not derived). Once a hash index exists, a
+   `soloctl.tags/2` can key refs on `(artifact_type, sha256)`.
+5. Resolve the compile-event decision; tag/collection events follow the
+   same answer.

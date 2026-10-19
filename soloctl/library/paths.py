@@ -20,6 +20,7 @@ SUPERSEDED = "superseded"
 COLLECTIONS = "collections"
 VERIFICATION = "verification"
 EVENTS_FILE = "events.jsonl"
+TAGS_FILE = "tags.json"
 UCC_EVENTS_DIR = "events"
 UCC_EVENTS_FILE = "artifact-compiler.jsonl"
 IDEMPOTENCY_DB = "idempotency.db"
@@ -76,6 +77,17 @@ class LibraryPaths:
     @property
     def collections(self) -> Path:
         return self.resolve(COLLECTIONS)
+
+    def collection_file(self, name: str) -> Path:
+        """`collections/<name>.json`; callers validate `name` first, and
+        resolve() still refuses anything that lands outside the root."""
+        return self.resolve(COLLECTIONS, f"{name}.json")
+
+    @property
+    def tags_file(self) -> Path:
+        """Operator-curated tag registry (WP4 item 5). Absent means no tags;
+        `init` does not create it."""
+        return self.resolve(TAGS_FILE)
 
     @property
     def verification(self) -> Path:

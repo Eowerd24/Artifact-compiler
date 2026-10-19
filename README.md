@@ -25,7 +25,12 @@ canonical transcript into draft artifacts under
 `artifacts/drafts/{scripts,prompts,runbooks}/`, with collision resolution
 against the library and per-fence accounting.
 
-Still **not** implemented: a compile ledger/`ucc.event`, verification execution, approval of drafts, manifest/index, tags, collections, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
+Work Package 4 (items 4-5) adds: real verification plans for the
+PowerShell, SQL, prompt and runbook emitters, language-specific risk flags
+(PowerShell, SQL, Python), and tags and collections (`soloctl tag`,
+`soloctl collection`).
+
+Still **not** implemented: a compile ledger/`ucc.event`, verification execution, approval of drafts, manifest/index, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
 
 ## Installation
 
@@ -138,6 +143,42 @@ soloctl compile library/transcripts/2026/10/forge-provisioning.md --library ./li
 - No library-level dedup yet: there is no hash index until manifest/index
   lands, so compiling the same transcript twice writes `-2` drafts.
 
+## `soloctl tag` and `soloctl collection`
+
+Tag compiled artifacts and group them into ordered collections. Both work
+on drafts and approved artifacts, and never change an artifact file.
+
+```bash
+soloctl tag add scripts/disk-audit.sh disk linux --library ./library
+soloctl tag add artifacts/drafts/scripts/disk-audit.sh disk --library ./library   # the path compile prints works too
+soloctl tag remove scripts/disk-audit.sh linux --library ./library
+soloctl tag list --library ./library                          # every tag, with counts
+soloctl tag list scripts/disk-audit.sh --library ./library    # one artifact's tags
+soloctl tag list --tag disk --library ./library               # artifacts carrying a tag
+
+soloctl collection create disk-kit --title "Disk triage" --description "..." --library ./library
+soloctl collection add disk-kit scripts/disk-audit.sh runbooks/disk-full-runbook.md --library ./library
+soloctl collection remove disk-kit scripts/disk-audit.sh --library ./library
+soloctl collection show disk-kit --library ./library
+soloctl collection list --library ./library
+```
+
+- An artifact is named `<kind>/<filename>` (`scripts/foo.sh`), the same
+  name in `drafts/` and `approved/`. A path under either works too.
+- Tags live in `library/tags.json`; each collection is
+  `library/collections/<name>.json`. Both are deterministic JSON written
+  atomically. A no-op (tag already there, member already in) writes
+  nothing.
+- Tag and collection names are lower-case slugs (`a-z`, `0-9`, `-`, up to
+  48 characters). Anything else is refused with a suggested slug.
+- Each reference also stores the artifact's `compiled:` header value. If a
+  name is reused by a later compile (the old file was deleted), the old
+  tags and memberships show as `STALE` and are never moved onto the new
+  file; `tag add`/`collection add` refuse until you remove them. A file
+  that's gone shows as `MISSING`; `remove` still cleans it up.
+- A corrupt `tags.json` or collection file is refused and left as it is.
+- No ledger event is written (same open decision as `compile`).
+
 ## Canonical transcript format
 
 ```markdown
@@ -195,10 +236,10 @@ Fence label → language → artifact type → emitter:
 |---|---|---|---|---|---|
 | `bash` `sh` `shell` `zsh` | bash | script | `bash` | `.sh` | full |
 | `python` `py` | python | script | `python` | `.py` (snake_case) | full |
-| `powershell` `pwsh` `ps1` | powershell | script | `powershell` | `.ps1` | scaffold |
-| `sql` `postgres` `postgresql` `mysql` `sqlite` `tsql` | sql (+dialect) | script | `sql` | `.sql` | scaffold |
-| `prompt` | prompt | prompt | `prompt` | `.md` | scaffold |
-| `markdown` `md` `runbook` | markdown | runbook | `runbook` | `.md` | scaffold |
+| `powershell` `pwsh` `ps1` | powershell | script | `powershell` | `.ps1` | full (plan incomplete: needs pwsh) |
+| `sql` `postgres` `postgresql` `mysql` `sqlite` `tsql` | sql (+dialect) | script | `sql` | `.sql` | full |
+| `prompt` | prompt | prompt | `prompt` | `.md` | full |
+| `markdown` `md` `runbook` | markdown | runbook | `runbook` | `.md` | full |
 
 - `console`/`terminal`/`shell-session` and unlabeled fences are always
   skipped; user-turn fences are skipped unless `include_user=True`.
@@ -211,8 +252,29 @@ Fence label → language → artifact type → emitter:
   `assign()`); more than one → `EmitterConfigurationError`.
 - `enabled_emitters` and `default_sql_dialect` in `soloctl.toml` configure
   the registry.
-- Scaffolded emitters return a `VerificationPlan` with `complete=False`:
-  "no automatic verification available", never an implicit pass.
+- Verification plans are data (nothing runs until WP5). `complete=True`
+  needs at least one required check soloctl runs itself; external tools
+  soloctl doesn't depend on are advisory (`required=False`):
+
+  | Emitter | Required | Advisory | `complete` |
+  |---|---|---|---|
+  | bash | `bash -n`, `shellcheck` | — | yes |
+  | python | `ast` parse (in-process) | `ruff` | yes |
+  | powershell | — | `pwsh-parse`, `psscriptanalyzer` (pwsh 7.4+) | **no** |
+  | sql | `sql-lexical` (in-process, not a parse) | `sqlfluff parse --dialect …` | yes |
+  | prompt | front matter, non-blank body, placeholders (in-process) | — | yes |
+  | runbook | front matter, title, labeled fences (markdown-it) | — | yes |
+
+  An incomplete plan means "cannot auto-verify", never an implicit pass.
+- Risk flags (annotation only, never blocking): the Bash table applies to
+  every language; PowerShell adds `remove-recurse-force`,
+  `execution-policy`, `invoke-expression`, `download-execute`,
+  `run-as-admin`; SQL adds `drop`, `truncate`, `delete-no-where`,
+  `update-no-where`, `grant-all`; Python adds `os-system`, `shell-true`,
+  `eval-exec`, `rmtree`.
+- PowerShell: a body shebang moves to line 1; `#Requires` lines stay put
+  and are listed in the plan notes. Prompt front matter lists template
+  placeholders (`{name}`, `{{ name }}`) as `placeholders: [...]`.
 
 ## UCC conformance
 
@@ -246,9 +308,10 @@ This remains a standalone-usable Artifact Compiler, now carrying the additive S2
 python3 -m pytest tests/ -v
 ```
 
-376 tests across configuration, library initialization, transcript
+583 tests across configuration, library initialization, transcript
 render/parse round-tripping, the markdown/ChatGPT/Claude importers, the
 importer registry, extractor regression (converted from the original
 `selftest.py` bare-assert suite, extended for multi-language extraction),
-the emitters and emitter registry, and the UCC contracts/ports. Versioned fixtures live under
+the emitters and emitter registry, compilation, tags and collections,
+and the UCC contracts/ports. Versioned fixtures live under
 `tests/fixtures/{chatgpt,claude}/v1/`.
