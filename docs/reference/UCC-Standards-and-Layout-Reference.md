@@ -258,7 +258,7 @@ VM-Factory asset source kinds: `packaged | operator_material | repository_snapsh
 
 ## 17. Required schemas (Phase 0 close)
 
-**Present on the S2-C development line:** `common, request, result, problem, event, module-health, artifact, artifact-revision, artifact-content-manifest, verification, approval, publication, execution-request`. The four S2-1 additions are pinned at `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`; `v0.3.0` is not cut yet.
+**Present in the vendored `ucc-contracts` `v0.3.0`:** `common, request, result, problem, event, module-health, artifact, artifact-revision, artifact-content-manifest, verification, approval, publication, execution-request`. The four S2-1 additions ship in the immutable tag `v0.3.0` (commit `4051a353ff558bf925ed690fc54b06e518727092`), which is what `third_party/ucc-contracts/` vendors; upstream has since tagged up to `v0.3.4`, not yet vendored. The v0.3.0 export set also contains the schemas listed as queued below; that list has not been re-audited against v0.3.0.
 
 **Queued (each needs valid + invalid fixtures):** `ucc.transfer, ucc.transfer-receipt, ucc.promotion, ucc.material, ucc.repository, ucc.repository-snapshot, ucc.workspace, ucc.workspace-checkpoint, ucc.material-collection, ucc.command-definition, ucc.vm-factory-asset, ucc.large-data-reference`, plus domain records `ucc.project, ucc.job, ucc.assignment, ucc.node, ucc.node-manifest, ucc.node-allocation, ucc.execution, ucc.handback, ucc.report, ucc.credential-lease, ucc.health-observation, ucc.quarantine`.
 

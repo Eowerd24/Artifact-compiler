@@ -23,7 +23,7 @@ vendored `ucc-contracts` disagrees with any prose, the code wins.
 3. **Don't cross the fences** — the standalone-only infra/shell paths listed in
    AGENTS.md must never be reached from a port. Fence tests are **AST-based**;
    never weaken one to a substring match to make it pass. (AGENTS.md §1.3–1.4)
-4. **`ucc-contracts` is vendored + pinned** — never hand-edit it locally. This branch pins upstream development commit `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`; released branches advance only by immutable tags. (AGENTS.md §1.5)
+4. **`ucc-contracts` is vendored + pinned** — never hand-edit it locally. This branch vendors upstream tag `v0.3.0` (commit `4051a353ff558bf925ed690fc54b06e518727092`); released branches advance only by immutable tags. (AGENTS.md §1.5)
 5. **Six-field format for every change**, delivered on reviewed branches with exact dependency pins. Keep the repo independently runnable and green. (AGENTS.md §1.7–1.8)
 
 ## Working notes for Claude Code
