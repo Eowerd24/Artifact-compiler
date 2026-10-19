@@ -4,8 +4,8 @@ from __future__ import annotations
 from ..compiler.models import ArtifactCandidate, ArtifactType
 from .base import (
     ARTIFACT_PATH, EmitContext, VerificationCheck, VerificationPlan,
-    comment_header, normalize_body, require_supported, script_header_rows,
-    slug_filename,
+    comment_header, normalize_body, require_supported, risk_notes,
+    script_header_rows, slug_filename,
 )
 
 _SHEBANG = "#!/usr/bin/env bash\n"
@@ -36,10 +36,6 @@ class BashEmitter:
 
     def verification_plan(self, candidate: ArtifactCandidate) -> VerificationPlan:
         require_supported(self, candidate)
-        notes: tuple[str, ...] = ()
-        if candidate.flags:
-            notes = (f"risk flags present ({', '.join(candidate.flags)}): "
-                     f"review these lines during manual verification",)
         return VerificationPlan(
             emitter=self.name,
             artifact_type=self.artifact_type,
@@ -56,7 +52,7 @@ class BashEmitter:
                           ARTIFACT_PATH)),
             ),
             complete=True,
-            notes=notes,
+            notes=risk_notes(candidate),
         )
 
     def executable(self, candidate: ArtifactCandidate) -> bool:

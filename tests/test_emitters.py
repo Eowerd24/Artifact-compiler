@@ -1,5 +1,6 @@
 """Emitter tests (WP3): Bash and Python emitters in full, PowerShell / SQL /
-prompt / runbook scaffolds, and the "emitters are pure" boundary."""
+prompt / runbook basics, and the "emitters are pure" boundary. Their WP4
+verification plans and render refinements are in test_emitter_plans.py."""
 from __future__ import annotations
 
 import ast
@@ -218,9 +219,10 @@ def test_python_executable():
 
 
 # --------------------------------------------------------------------------
-# Scaffolded emitters — supports/normalize/render/plan, one focused test each
+# PowerShell / SQL / prompt / runbook — supports/normalize/render/plan basics
+# (scaffolded in WP3; plan details in test_emitter_plans.py)
 # --------------------------------------------------------------------------
-def test_powershell_scaffold():
+def test_powershell_basics():
     e = PowerShellEmitter()
     c = cand("pwsh", "Get-PSDrive   \r\n", heading="List drives")
     assert e.supports(c) and e.supports(cand("ps1", "Get-Date"))
@@ -231,11 +233,12 @@ def test_powershell_scaffold():
     assert text.startswith("# name:        list-drives.ps1\n")
     assert text.endswith("\nGet-PSDrive\n")
     plan = e.verification_plan(c)
-    assert plan.complete is False and plan.checks == ()
+    assert plan.complete is False                    # every check is advisory
+    assert plan.checks and not any(ch.required for ch in plan.checks)
     assert e.executable(c) is False
 
 
-def test_sql_scaffold_dialect_from_label_then_config_default():
+def test_sql_dialect_from_label_then_config_default():
     c_pg = cand("postgres", "SELECT 1;  ", heading="Top tables")
     c_plain = cand("sql", "-- top tables\nSELECT 1;", heading=None)
     e = SqlEmitter(default_dialect="sqlite")
@@ -249,11 +252,11 @@ def test_sql_scaffold_dialect_from_label_then_config_default():
     text = e.render(c_pg, CTX)
     assert text.startswith("-- name:        top-tables.sql\n-- dialect:     postgresql\n")
     assert "-- dialect:     unspecified\n" in SqlEmitter().render(c_plain, CTX)
-    assert e.verification_plan(c_pg).complete is False
+    assert e.verification_plan(c_pg).complete is True
     assert e.executable(c_pg) is False
 
 
-def test_prompt_scaffold():
+def test_prompt_basics():
     e = PromptEmitter()
     c = cand("prompt", "You are an SRE.\nSummarize: {input}", heading="Summarize audit")
     assert e.supports(c) and not e.supports(cand("md", "1. step"))
@@ -263,11 +266,11 @@ def test_prompt_scaffold():
     assert text.startswith('---\nkind: "prompt"\nname: "summarize-audit.md"\n')
     assert '\nrisk-flags: []\n' in text
     assert f'\nverify-with: "{PLACEHOLDER}"\n---\n\nYou are an SRE.' in text
-    assert e.verification_plan(c).complete is False
+    assert e.verification_plan(c).complete is True
     assert e.executable(c) is False
 
 
-def test_runbook_scaffold():
+def test_runbook_basics():
     e = RunbookEmitter()
     c = cand("md", "# Disk full\n\n1. `sudo logrotate -f x`\n", heading="Disk full runbook")
     assert e.supports(c) and e.supports(cand("runbook", "1. step"))
@@ -279,7 +282,7 @@ def test_runbook_scaffold():
     assert '\nrisk-flags: ["sudo"]\n' in text
     assert text.endswith("---\n\n# Disk full\n\n1. `sudo logrotate -f x`\n")
     plan = e.verification_plan(c)
-    assert plan.complete is False and "not designed yet" in plan.notes[0]
+    assert plan.complete is True and plan.notes[0].startswith("risk flags present (sudo)")
     assert e.executable(c) is False
 
 
@@ -287,7 +290,7 @@ def test_markdown_front_matter_quotes_hostile_values():
     ctx = dataclasses.replace(CTX, source='a: b\n---\nkind: "script"')
     text = PromptEmitter().render(cand("prompt", "hi"), ctx)
     front = text.split("\n---\n", 1)[0]
-    assert front.count("\n") == 8                      # 9 lines, no injection
+    assert front.count("\n") == 9      # 10 lines (incl. placeholders), no injection
     assert 'source: "a: b --- kind: \\"script\\""' in front
 
 

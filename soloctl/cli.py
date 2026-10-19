@@ -7,8 +7,10 @@ terminal in the loop.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import TypeVar
 
 import typer
 
@@ -20,6 +22,8 @@ from .importers import build_default_registry
 from .importers.base import ConversationSummary
 from .importers.registry import ImporterRegistry
 from .ledger import EVENT_SCHEMA_VERSION, append_event, load_scrub_patterns, now_iso, scan_text_for_secret
+from .library import collections as collections_svc
+from .library import tags as tags_svc
 from .library.paths import LibraryPaths
 from .library.repository import InitResult, init_library
 from .transcript.models import Transcript
@@ -29,8 +33,14 @@ from .ucc_events import emit_event
 
 app = typer.Typer(no_args_is_help=True, add_completion=False,
                   help="Local-first artifact compiler CLI.")
+tag_app = typer.Typer(no_args_is_help=True, help="Tag compiled artifacts.")
+collection_app = typer.Typer(no_args_is_help=True,
+                             help="Group compiled artifacts into named collections.")
+app.add_typer(tag_app, name="tag")
+app.add_typer(collection_app, name="collection")
 
 SCRUB_PATTERNS_FILENAME = "scrub-patterns.toml"
+T = TypeVar("T")
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +220,42 @@ def _render_compile(outcome: CompileOutcome) -> None:
         print("  nothing written (--dry-run)")
 
 
+def _status(status: str) -> str:
+    return "" if status in ("draft", "approved") else f"  ({status.upper()})"
+
+
+def _render_tag_change(verb: str, change: tags_svc.TagChange) -> None:
+    print(f"soloctl tag {verb} — {change.ref}")
+    if change.changed:
+        print(f"  {verb + ('ed' if verb == 'add' else 'd')}: {', '.join(change.changed)}")
+    if change.unchanged:
+        already = "already tagged" if verb == "add" else "not tagged"
+        print(f"  {already}: {', '.join(change.unchanged)}")
+    print(f"  tags: {', '.join(change.tags) or '(none)'}")
+    if not change.written:
+        print("  nothing to do")
+
+
+def _render_member_change(verb: str, change: collections_svc.MemberChange) -> None:
+    print(f"soloctl collection {verb} — {change.collection.name}")
+    for ref in change.changed:
+        print(f"  {verb + ('ed' if verb == 'add' else 'd')}: {ref}")
+    for ref in change.unchanged:
+        print(f"  {'already a member' if verb == 'add' else 'not a member'}: {ref}")
+    print(f"  members: {len(change.collection.members)}")
+    if not change.written:
+        print("  nothing to do")
+
+
+def _run_library_op(fn: Callable[[], T]) -> T:
+    """Run a tag/collection service call; every domain refusal exits 1."""
+    try:
+        return fn()
+    except SoloctlError as exc:
+        typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
+
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
@@ -305,6 +351,128 @@ def compile_(
         typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
     _render_compile(outcome)
+
+
+# --------------------------------------------------------------------------- tag
+_LIBRARY_OPT = typer.Option(None, "--library", help="Library root directory")
+
+
+@tag_app.command("add")
+def tag_add(
+    artifact: str = typer.Argument(..., help="scripts/foo.sh, or the path compile printed"),
+    tags: list[str] = typer.Argument(..., help="One or more tags (a-z, 0-9, '-')"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """Add tags to a compiled artifact (draft or approved)."""
+    config = _resolve_config(library)
+    _render_tag_change("add", _run_library_op(
+        lambda: tags_svc.add_tags(config, artifact, tags)))
+
+
+@tag_app.command("remove")
+def tag_remove(
+    artifact: str = typer.Argument(..., help="scripts/foo.sh, or the path compile printed"),
+    tags: list[str] = typer.Argument(..., help="One or more tags"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """Remove tags from an artifact (also works once the file is gone)."""
+    config = _resolve_config(library)
+    _render_tag_change("remove", _run_library_op(
+        lambda: tags_svc.remove_tags(config, artifact, tags)))
+
+
+@tag_app.command("list")
+def tag_list(
+    artifact: str = typer.Argument(None, help="Show this artifact's tags"),
+    tag: str = typer.Option(None, "--tag", help="Show the artifacts carrying this tag"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """List all tags, one artifact's tags, or the artifacts with a tag."""
+    config = _resolve_config(library)
+    if artifact and tag:
+        typer.secho("ERROR: give an artifact or --tag, not both", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
+    if artifact:
+        one = _run_library_op(lambda: tags_svc.artifact_tags(config, artifact))
+        print(f"{one.ref}: {', '.join(one.tags) or '(no tags)'}{_status(one.status)}")
+    elif tag:
+        hits = _run_library_op(lambda: tags_svc.artifacts_with_tag(config, tag))
+        print(f"soloctl tag list — {tag}: {len(hits)} artifact{'s' if len(hits) != 1 else ''}")
+        for h in hits:
+            print(f"  {h.ref}{_status(h.status)}")
+    else:
+        index = _run_library_op(lambda: tags_svc.all_tags(config))
+        print(f"soloctl tag list — {len(index)} tag{'s' if len(index) != 1 else ''}")
+        for name, refs in index.items():
+            print(f"  {name:<24} {len(refs)}")
+
+
+# ------------------------------------------------------------------- collection
+@collection_app.command("create")
+def collection_create(
+    name: str = typer.Argument(..., help="Collection name (a-z, 0-9, '-')"),
+    title: str = typer.Option(None, "--title", help="Human-readable title"),
+    description: str = typer.Option(None, "--description", help="What the collection is for"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """Create an empty collection (a no-op if it already exists unchanged)."""
+    config = _resolve_config(library)
+    change = _run_library_op(lambda: collections_svc.create_collection(
+        config, name, title=title, description=description))
+    state = "created" if change.created else "already exists"
+    print(f"soloctl collection create — {name}: {state}")
+
+
+@collection_app.command("add")
+def collection_add(
+    name: str = typer.Argument(..., help="Collection name"),
+    artifacts: list[str] = typer.Argument(..., help="Artifacts to append, in order"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """Append artifacts to a collection."""
+    config = _resolve_config(library)
+    _render_member_change("add", _run_library_op(
+        lambda: collections_svc.add_members(config, name, artifacts)))
+
+
+@collection_app.command("remove")
+def collection_remove(
+    name: str = typer.Argument(..., help="Collection name"),
+    artifacts: list[str] = typer.Argument(..., help="Members to remove"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """Remove members from a collection (also works once a file is gone)."""
+    config = _resolve_config(library)
+    _render_member_change("remove", _run_library_op(
+        lambda: collections_svc.remove_members(config, name, artifacts)))
+
+
+@collection_app.command("show")
+def collection_show(
+    name: str = typer.Argument(..., help="Collection name"),
+    library: Path = _LIBRARY_OPT,
+) -> None:
+    """Show a collection's members and their status."""
+    config = _resolve_config(library)
+    view = _run_library_op(lambda: collections_svc.show_collection(config, name))
+    c = view.collection
+    print(f"soloctl collection show — {c.name}" + (f": {c.title}" if c.title else ""))
+    if c.description:
+        print(f"  {c.description}")
+    if not view.members:
+        print("  (no members)")
+    for i, m in enumerate(view.members, 1):
+        print(f"  {i:>3}. {m.ref}{_status(m.status)}")
+
+
+@collection_app.command("list")
+def collection_list(library: Path = _LIBRARY_OPT) -> None:
+    """List collections."""
+    config = _resolve_config(library)
+    found = _run_library_op(lambda: collections_svc.list_collections(config))
+    print(f"soloctl collection list — {len(found)} collection{'s' if len(found) != 1 else ''}")
+    for c in found:
+        print(f"  {c.name:<24} {len(c.members):>3} members  {c.title}")
 
 
 @app.command()

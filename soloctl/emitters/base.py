@@ -25,8 +25,8 @@ __all__ = [
     "ArtifactEmitter", "EmitContext", "VerificationCheck", "VerificationPlan",
     "ARTIFACT_PATH", "PLACEHOLDER", "DRAFT_REVIEW_LINE",
     "require_supported", "normalize_body", "header_value", "flags_value",
-    "slug_filename", "comment_header", "script_header_rows", "scaffold_plan",
-    "yaml_front_matter", "markdown_front_matter",
+    "slug_filename", "comment_header", "script_header_rows", "risk_notes",
+    "leading_shebang", "yaml_front_matter", "markdown_front_matter",
 ]
 
 # Stands in for the artifact's on-disk path inside a check's argv. The
@@ -69,11 +69,14 @@ class VerificationCheck:
 class VerificationPlan:
     """What automatic verification should run for one artifact.
 
-    `complete=False` means the emitter has no real verification design yet
-    (scaffolded emitters). A verifier must treat an incomplete plan as
-    "cannot auto-verify", never as "nothing failed, so it passed" — an empty
-    check list is not evidence. Manual verification is always separate and
-    is not represented here."""
+    `complete=True` means the plan holds at least one *required* check, so a
+    run in which every required check passes is real evidence. `complete=False`
+    means soloctl cannot establish a pass on its own — e.g. every check needs
+    an external tool soloctl doesn't depend on, so all of them are advisory
+    (`notes` says why). A verifier must treat an incomplete plan as "cannot
+    auto-verify", never as "nothing failed, so it passed" — advisory checks
+    passing, or an empty check list, is not evidence. Manual verification is
+    always separate and is not represented here."""
     emitter: str
     artifact_type: ArtifactType
     checks: tuple[VerificationCheck, ...]
@@ -191,14 +194,19 @@ def comment_header(prefix: str, rows: list[tuple[str, str]]) -> str:
     return "".join(f"{prefix} {key + ':':<13}{value}\n" for key, value in rows)
 
 
-def scaffold_plan(emitter: str, artifact_type: ArtifactType,
-                  intended: str) -> VerificationPlan:
-    """Plan returned by emitters whose verification isn't designed yet:
-    no checks and `complete=False`, so it can never read as a pass."""
-    return VerificationPlan(
-        emitter=emitter, artifact_type=artifact_type, checks=(), complete=False,
-        notes=(f"automatic verification not designed yet (scaffolded emitter); "
-               f"intended: {intended}",))
+def risk_notes(candidate: ArtifactCandidate) -> tuple[str, ...]:
+    """The plan note every emitter adds when the extractor flagged risks."""
+    if not candidate.flags:
+        return ()
+    return (f"risk flags present ({', '.join(candidate.flags)}): "
+            f"review these lines during manual verification",)
+
+
+def leading_shebang(body: str) -> str | None:
+    """The body's own `#!` line (trailing whitespace dropped), if it has one
+    on line 1 — the same line `normalize_body(strip_shebang=True)` removes."""
+    m = _SHEBANG_RX.match(body.replace("\r\n", "\n"))
+    return m.group(0).rstrip() if m else None
 
 
 def yaml_front_matter(fields: list[tuple[str, str | list[str]]]) -> str:
@@ -212,8 +220,10 @@ def yaml_front_matter(fields: list[tuple[str, str | list[str]]]) -> str:
 
 
 def markdown_front_matter(kind: str, filename: str, candidate: ArtifactCandidate,
-                          context: EmitContext) -> str:
-    """Front matter shared by the `.md` emitters (prompt, runbook)."""
+                          context: EmitContext, *,
+                          extra: list[tuple[str, str | list[str]]] | None = None) -> str:
+    """Front matter shared by the `.md` emitters (prompt, runbook). `extra`
+    fields go just before `verify-with`, which stays the last key."""
     return yaml_front_matter([
         ("kind", kind),
         ("name", filename),
@@ -222,5 +232,6 @@ def markdown_front_matter(kind: str, filename: str, candidate: ArtifactCandidate
         ("description", header_value(candidate.description)),
         ("review", DRAFT_REVIEW_LINE),
         ("risk-flags", list(candidate.flags)),
+        *(extra or []),
         ("verify-with", PLACEHOLDER),
     ])

@@ -19,6 +19,41 @@ class PathEscapesLibraryError(LibraryError):
     """A resolved path fell outside the configured library root."""
 
 
+class InvalidNameError(LibraryError):
+    """A tag or collection name isn't a lower-case slug. Refused, never
+    silently rewritten: the message suggests the slug form."""
+
+
+class UnknownArtifactError(LibraryError):
+    """An artifact argument doesn't name a soloctl draft or approved
+    artifact (bad form, no such file, or no `compiled:` stamp)."""
+
+
+class AmbiguousArtifactError(LibraryError):
+    """The same `<kind>/<filename>` exists in both drafts/ and approved/ —
+    a broken library invariant. Refused rather than picking one."""
+
+
+class StaleReferenceError(LibraryError):
+    """A stored reference's `compiled:` stamp doesn't match the file now at
+    that name: the name was reused by a different compile. Never re-attached
+    silently; remove the stale entry first."""
+
+
+class UnknownCollectionError(LibraryError):
+    """No `collections/<name>.json` exists."""
+
+
+class CollectionConflictError(LibraryError):
+    """`collection create` named an existing collection with a different
+    title or description."""
+
+
+class RegistryCorruptError(LibraryError):
+    """tags.json or a collection file isn't valid soloctl JSON. Refused, and
+    never overwritten: fix or remove the file by hand."""
+
+
 class TranscriptError(SoloctlError):
     """Base class for canonical transcript rendering/parsing errors."""
 
