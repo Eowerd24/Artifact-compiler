@@ -1,82 +1,46 @@
-"""Extractor — pure function, no I/O. Implements EXTRACTOR_BLUEPRINT.md v1.
+"""Extractor — pure function, no I/O. Implements EXTRACTOR_BLUEPRINT.md v1,
+generalized from Bash-only to language-neutral `ArtifactCandidate`s (Phase 6).
 
 Signed-off behaviors preserved from the soloctl-0.1.0 prototype:
-  1. Secret hit aborts the ENTIRE extract (SecretDetected), zero output.
+  1. Secret hit aborts the ENTIRE extract (SecretDetected), zero output —
+     every fence is scanned, including ones that would be skipped.
   2. Supersede: within-document revisions collapse, last wins (name match or
      difflib ratio >= 0.70 on normalized bodies). Deterministic, no AI.
+     Revisions only ever group within one language.
   3. Transcript mode: assistant-turn fences only by default; the preceding
      user question is the preferred description source.
 
 Invariant (self-checked): every input fence lands in blocks or skipped.
 
-This module still generalizes only to Bash-family fences (WP1 scope keeps
-the extractor's current behavior; expanding to all emitter languages and
-introducing the ArtifactCandidate model is Phase 6 / a later work package).
+Recognized fence labels live in `classify.LABELS` (bash, python, powershell,
+sql + dialects, prompt, markdown/runbook). `only` still defaults to
+`{"bash"}` so callers that never passed it see the WP1 behavior unchanged;
+pass `only=SUPPORTED_LANGUAGES` to extract every recognized language.
 """
 from __future__ import annotations
 
 import hashlib
 import re
 from collections import Counter
-from dataclasses import dataclass
+from collections.abc import Collection
 from difflib import SequenceMatcher
 
 from markdown_it import MarkdownIt
 
-from ..errors import SecretDetected
+from ..errors import SecretDetected, UnknownLanguageError
 from ..ledger import load_scrub_patterns, scan_text_for_secret
+from .classify import CONSOLE_LABELS, SUPPORTED_LANGUAGES, classify_label
+from .models import ArtifactCandidate, Block, ExtractResult, SkipRecord, SourceRef
 
 __all__ = [
-    "SourceRef", "Block", "SkipRecord", "ExtractResult", "SecretDetected",
+    "SourceRef", "ArtifactCandidate", "Block", "SkipRecord", "ExtractResult",
+    "SecretDetected", "SUPPORTED_LANGUAGES", "DEFAULT_ONLY",
     "extract", "load_risk_patterns",
 ]
 
 SIMILARITY_THRESHOLD = 0.70
-TARGET_LANGS = {"bash", "sh", "shell", "zsh"}          # all normalize to "bash"
-CONSOLE_LANGS = {"console", "terminal", "shell-session", "shellsession"}
-
-
-# --------------------------------------------------------------------------
-# Data model (blueprint §2)
-# --------------------------------------------------------------------------
-@dataclass(frozen=True)
-class SourceRef:
-    path: str
-    line_start: int
-    line_end: int
-    turn: int | None = None
-    role: str | None = None
-
-
-@dataclass(frozen=True)
-class Block:
-    lang: str
-    body: str
-    body_norm: str
-    sha256: str
-    name_proposal: str
-    description: str
-    heading_path: tuple[str, ...]
-    flags: tuple[str, ...]
-    src: SourceRef
-    supersedes: str | None = None       # sha256 of the latest prior revision
-    superseded_count: int = 0
-
-
-@dataclass(frozen=True)
-class SkipRecord:
-    reason: str   # unlabeled | non-target-lang | console | user-turn |
-                  # dupe-in-library | superseded | empty
-    lang: str | None
-    src: SourceRef
-    detail: str = ""
-
-
-@dataclass(frozen=True)
-class ExtractResult:
-    blocks: tuple[Block, ...]
-    skipped: tuple[SkipRecord, ...]
-    stats: dict
+DEFAULT_ONLY: frozenset[str] = frozenset({"bash"})
+CONSOLE_LANGS = CONSOLE_LABELS
 
 
 # --------------------------------------------------------------------------
@@ -124,6 +88,15 @@ _LEADIN_RX = re.compile(
     r"^\s*(?:sure[,.!]?\s+)?here(?:'s| is)\s+(?:a |an |the )?"
     r"(?:\w+ ){0,2}?(?:that|to|which)\s+", re.IGNORECASE)
 _COMMENT_NAME_RX = re.compile(r"^#\s*(?!!)([A-Za-z][^\n]{2,})$")
+_SQL_COMMENT_NAME_RX = re.compile(r"^--\s*([A-Za-z][^\n]{2,})$")
+# Line-comment syntax per language, used only for the name fallback. Prompts
+# have no comment syntax; a markdown runbook's "# Title" heading reads the same
+# way as a shell comment, which is exactly the name we want.
+_COMMENT_RX_BY_LANG: dict[str, re.Pattern[str]] = {
+    "bash": _COMMENT_NAME_RX, "python": _COMMENT_NAME_RX,
+    "powershell": _COMMENT_NAME_RX, "markdown": _COMMENT_NAME_RX,
+    "sql": _SQL_COMMENT_NAME_RX,
+}
 
 
 def _slugify(text: str, max_len: int = 48) -> str:
@@ -148,12 +121,15 @@ def _strip_leadin(text: str) -> str:
     return (t[:1].upper() + t[1:]) if t else ""
 
 
-def _name_from_comment(body: str) -> str | None:
+def _name_from_comment(body: str, lang: str = "bash") -> str | None:
+    rx = _COMMENT_RX_BY_LANG.get(lang)
+    if rx is None:
+        return None
     for line in body.splitlines()[:6]:
         line = line.strip()
         if line.startswith("#!"):
             continue
-        m = _COMMENT_NAME_RX.match(line)
+        m = rx.match(line)
         if m and not m.group(1).lower().startswith(("set ", "shellcheck")):
             return _slugify(m.group(1))
     return None
@@ -164,12 +140,15 @@ def _name_from_comment(body: str) -> str | None:
 # --------------------------------------------------------------------------
 def extract(text: str, *, source: str = "-",
             library_hashes: frozenset[str] = frozenset(),
-            only: set[str] | None = None,
+            only: Collection[str] | None = None,
             include_user: bool = False,
             all_revisions: bool = False,
             scrub_patterns=None,
             risk_patterns=None) -> ExtractResult:
-    only = only or {"bash"}
+    only = frozenset(only or DEFAULT_ONLY)
+    unknown = only - SUPPORTED_LANGUAGES
+    if unknown:
+        raise UnknownLanguageError(sorted(unknown), sorted(SUPPORTED_LANGUAGES))
     scrub = scrub_patterns if scrub_patterns is not None \
         else load_scrub_patterns("/nonexistent")          # -> built-in defaults
     risk = risk_patterns if risk_patterns is not None else list(_DEFAULT_RISK)
@@ -271,12 +250,18 @@ def extract(text: str, *, source: str = "-",
         if lang_raw is None:
             skipped.append(SkipRecord("unlabeled", None, srcref(f)))
             continue
-        if lang_raw in CONSOLE_LANGS:
+        if lang_raw in CONSOLE_LABELS:
             skipped.append(SkipRecord("console", lang_raw, srcref(f)))
             continue
-        lang = "bash" if lang_raw in TARGET_LANGS else lang_raw
+        cls = classify_label(lang_raw)
+        if cls is None:
+            skipped.append(SkipRecord("non-target-lang", lang_raw, srcref(f),
+                                      detail="unrecognized label"))
+            continue
+        lang = cls.language
         if lang not in only:
-            skipped.append(SkipRecord("non-target-lang", lang_raw, srcref(f)))
+            skipped.append(SkipRecord("non-target-lang", lang_raw, srcref(f),
+                                      detail=f"{lang} not selected"))
             continue
         if f["role"] == "user" and not include_user:
             skipped.append(SkipRecord("user-turn", lang_raw, srcref(f)))
@@ -284,7 +269,7 @@ def extract(text: str, *, source: str = "-",
 
         # name: heading -> first comment line -> block-NN
         name = (_slugify(f["heading_path"][-1]) if f["heading_path"] else "") \
-            or _name_from_comment(f["body"]) or f"block-{n:02d}"
+            or _name_from_comment(f["body"], lang) or f"block-{n:02d}"
 
         # description: preceding user turn -> same-turn para -> heading path
         desc = ""
@@ -306,7 +291,8 @@ def extract(text: str, *, source: str = "-",
             "sha256": hashlib.sha256(body_norm.encode()).hexdigest(),
             "name_proposal": name, "description": desc,
             "heading_path": f["heading_path"], "flags": flags,
-            "src": srcref(f),
+            "src": srcref(f), "artifact_type": cls.artifact_type,
+            "lang_raw": lang_raw, "dialect": cls.dialect,
         })
 
     # -- supersede (within-document, last wins) ------------------------------
@@ -316,6 +302,8 @@ def extract(text: str, *, source: str = "-",
             placed = False
             for g in groups:
                 rep = g[-1]
+                if b["lang"] != rep["lang"]:
+                    continue          # a bash and a python block never revise each other
                 if (b["name_proposal"] == rep["name_proposal"]
                         or SequenceMatcher(None, rep["body_norm"],
                                            b["body_norm"]).ratio()
@@ -342,24 +330,27 @@ def extract(text: str, *, source: str = "-",
         survivors.append(last)
 
     # -- library dedup on survivors ------------------------------------------
-    final: list[Block] = []
+    final: list[ArtifactCandidate] = []
     for b in survivors:
         if b["sha256"] in library_hashes:
             skipped.append(SkipRecord("dupe-in-library", b["lang"], b["src"],
                                       detail=b["name_proposal"]))
             continue
-        final.append(Block(
+        final.append(ArtifactCandidate(
             lang=b["lang"], body=b["body"], body_norm=b["body_norm"],
             sha256=b["sha256"], name_proposal=b["name_proposal"],
             description=b["description"], heading_path=b["heading_path"],
             flags=b["flags"], src=b["src"],
+            artifact_type=b["artifact_type"], lang_raw=b["lang_raw"],
             supersedes=b.get("supersedes"),
-            superseded_count=b.get("superseded_count", 0)))
+            superseded_count=b.get("superseded_count", 0),
+            dialect=b["dialect"]))
 
     stats = {"fences_seen": fences_seen,
              "turns": max((t for _, t, _ in markers), default=0),
              "transcript_mode": transcript_mode,
-             "by_lang": dict(by_lang)}
+             "by_lang": dict(by_lang),
+             "by_artifact_type": dict(Counter(b.artifact_type for b in final))}
 
     # invariant (blueprint rule 2): nothing disappears silently
     if fences_seen != len(final) + len(skipped):

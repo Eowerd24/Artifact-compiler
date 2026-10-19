@@ -1,4 +1,4 @@
-# soloctl — Artifact Compiler backend (Work Packages 1-2)
+# soloctl — Artifact Compiler backend (Work Packages 1-3)
 
 Local-first backend that imports chat transcripts, extracts reusable
 artifacts, and now stores minimal canonical script Artifact/Revision/Verification/Approval/Publication records with hash-addressed content. Single operator, no database,
@@ -14,7 +14,14 @@ import adapters, conversation listing/selection (`--list`,
 `--conversation`), and a `transcript.import` ledger event appended to
 `library/events.jsonl` on every real import (success or secret refusal).
 
-Still **not** implemented: the full emitter catalog, tags, collections, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
+Work Package 3 adds: a language-neutral extractor (`ArtifactCandidate`
+model; Bash, Python, PowerShell, SQL, prompt, and Markdown runbook fence
+labels), the emitter protocol and registry, full Bash and Python emitters,
+and scaffolded PowerShell/SQL/prompt/runbook emitters. These are importable
+services only — there is no `soloctl compile` command yet and nothing is
+written to `artifacts/drafts/`.
+
+Still **not** implemented: the compilation coordinator and draft writes, verification execution, tags, collections, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
 
 ## Installation
 
@@ -22,6 +29,7 @@ Requires Python 3.11+.
 
 ```bash
 pip install -e ".[dev]"
+pip install -e third_party/ucc-contracts   # vendored contracts; tests import it
 ```
 
 ## `soloctl init`
@@ -123,6 +131,53 @@ required `Transcript`/`Turn` field, with one documented normalization:
 per-turn content is stripped of leading/trailing blank lines. Internal
 content — including fenced code blocks — is preserved exactly.
 
+## Compiler: extraction and emitters (library API, WP3)
+
+No CLI surface yet — the compilation coordinator (Work Package 4) will wire
+these together. Both stages are pure: no file writes, no tool execution.
+
+```python
+from soloctl.compiler.extract import SUPPORTED_LANGUAGES, extract
+from soloctl.config import load_config
+from soloctl.emitters import EmitContext, registry_from_config
+
+result = extract(canonical_transcript_text, source="t.md",
+                 only=SUPPORTED_LANGUAGES, library_hashes=known_hashes)
+registry = registry_from_config(load_config())
+assignment = registry.assign(result.candidates)
+ctx = EmitContext(source="chat:claude ...", compiled_at="2026-10-19T12:00:00Z",
+                  tool_version="0.1.0")
+for candidate, emitter in assignment.assigned:
+    filename = emitter.propose_filename(candidate)   # pre-collision-resolution
+    text = emitter.render(candidate, ctx)            # content only, not written
+    plan = emitter.verification_plan(candidate)      # described, not executed
+```
+
+Fence label → language → artifact type → emitter:
+
+| Fence labels | Language | Type | Emitter | File | Status |
+|---|---|---|---|---|---|
+| `bash` `sh` `shell` `zsh` | bash | script | `bash` | `.sh` | full |
+| `python` `py` | python | script | `python` | `.py` (snake_case) | full |
+| `powershell` `pwsh` `ps1` | powershell | script | `powershell` | `.ps1` | scaffold |
+| `sql` `postgres` `postgresql` `mysql` `sqlite` `tsql` | sql (+dialect) | script | `sql` | `.sql` | scaffold |
+| `prompt` | prompt | prompt | `prompt` | `.md` | scaffold |
+| `markdown` `md` `runbook` | markdown | runbook | `runbook` | `.md` | scaffold |
+
+- `console`/`terminal`/`shell-session` and unlabeled fences are always
+  skipped; user-turn fences are skipped unless `include_user=True`.
+- `only` defaults to `{"bash"}` (WP1 behavior); pass `SUPPORTED_LANGUAGES`
+  (or a subset of normalized language names) to extract more.
+- Secret refusal covers every fence, including ones that are skipped.
+- Supersession (last revision wins) only groups blocks of the same language.
+- The registry requires exactly one enabled emitter per candidate: none →
+  `unsupported-emitter` (an error from `resolve()`, a skip record from
+  `assign()`); more than one → `EmitterConfigurationError`.
+- `enabled_emitters` and `default_sql_dialect` in `soloctl.toml` configure
+  the registry.
+- Scaffolded emitters return a `VerificationPlan` with `complete=False`:
+  "no automatic verification available", never an implicit pass.
+
 ## UCC conformance
 
 Uses the **ucc-contracts v0.3.0** contracts release. The exact D8 export set is vendored at
@@ -155,8 +210,9 @@ This remains a standalone-usable Artifact Compiler, now carrying the additive S2
 python3 -m pytest tests/ -v
 ```
 
-176 tests across configuration, library initialization, transcript
+376 tests across configuration, library initialization, transcript
 render/parse round-tripping, the markdown/ChatGPT/Claude importers, the
-importer registry, and extractor regression (converted from the original
-`selftest.py` bare-assert suite). Versioned fixtures live under
+importer registry, extractor regression (converted from the original
+`selftest.py` bare-assert suite, extended for multi-language extraction),
+the emitters and emitter registry, and the UCC contracts/ports. Versioned fixtures live under
 `tests/fixtures/{chatgpt,claude}/v1/`.

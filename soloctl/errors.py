@@ -55,6 +55,54 @@ class ConversationNotFoundError(ImporterError):
     unambiguous title substring present in the input."""
 
 
+class CompilerError(SoloctlError):
+    """Base class for extractor/classifier errors."""
+
+
+class UnknownLanguageError(CompilerError):
+    """`extract(only=...)` named a language the classifier never produces —
+    usually an emitter name ("runbook") or a raw fence label ("pwsh") passed
+    where a normalized language ("markdown", "powershell") was expected."""
+
+    def __init__(self, unknown: list[str], supported: list[str]) -> None:
+        self.unknown = unknown
+        self.supported = supported
+        super().__init__(
+            f"unknown extractor language(s) {unknown}: `only` takes normalized "
+            f"language names, one of {supported}"
+        )
+
+
+class EmitterError(SoloctlError):
+    """Base class for emitter protocol/registry errors."""
+
+
+class UnsupportedEmitterError(EmitterError):
+    """No enabled emitter supports a candidate (reason code
+    `unsupported-emitter`). Not a bug: enable the emitter in soloctl.toml's
+    `enabled_emitters`, or accept that the candidate is skipped."""
+
+    reason = "unsupported-emitter"
+
+    def __init__(self, lang: str, artifact_type: str, location: str,
+                 detail: str = "") -> None:
+        self.lang = lang
+        self.artifact_type = artifact_type
+        self.location = location
+        super().__init__(
+            f"{self.reason}: no enabled emitter supports a {artifact_type!r} "
+            f"candidate in language {lang!r} at {location}"
+            + (f" ({detail})" if detail else "")
+            + ". Enable a matching emitter in soloctl.toml `enabled_emitters`."
+        )
+
+
+class EmitterConfigurationError(EmitterError):
+    """The emitter set itself is wrong: duplicate names, an unknown emitter
+    named in `enabled_emitters`, or more than one emitter claiming the same
+    candidate. An internal configuration bug — never resolved by guessing."""
+
+
 class SecretDetected(SoloctlError):
     """Raised the instant a secret pattern matches. Aborts the whole
     operation before anything is written — refusal, not redaction."""
