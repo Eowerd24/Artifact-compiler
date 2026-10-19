@@ -13,6 +13,7 @@ from pathlib import Path
 import typer
 
 from . import __version__
+from .compiler.compile import CompileOutcome, compile_transcript
 from .config import SoloctlConfig, load_config
 from .errors import IdempotencyConflict, OutcomeUnknown, SecretDetected, SoloctlError
 from .importers import build_default_registry
@@ -190,6 +191,25 @@ def _render_import_result(result: dict) -> None:
     print(f"  correlation: {result['correlation_id']}")
 
 
+def _render_compile(outcome: CompileOutcome) -> None:
+    acc = outcome.accounting
+    verb = "would write" if outcome.dry_run else "wrote"
+    print(f"soloctl compile — {'dry run: ' if outcome.dry_run else ''}"
+          f"{outcome.title!r} ({outcome.transcript_path})")
+    for d in outcome.drafts:
+        note = f"  (renamed from {d.proposed_filename})" if d.renamed else ""
+        print(f"  {verb}: {d.relative_path}  [{d.emitter}]{note}")
+    for s in outcome.skipped + outcome.unsupported:
+        detail = f" — {s.detail}" if s.detail else ""
+        print(f"  skipped {s.reason}: {s.lang or '(unlabeled)'} at "
+              f"{s.src.path}:{s.src.line_start}{detail}")
+    print(f"  fences: {acc['fences_seen']} = {acc['drafts']} "
+          f"{'planned' if outcome.dry_run else 'written'} + {acc['skipped']} "
+          f"skipped + {acc['unsupported']} unsupported")
+    if outcome.dry_run:
+        print("  nothing written (--dry-run)")
+
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
@@ -260,6 +280,31 @@ def import_(
         _render_import_result(outcome)
     else:
         _render_import(outcome)
+
+
+@app.command(name="compile")
+def compile_(
+    path: Path = typer.Argument(..., help="Canonical transcript to compile"),
+    dry_run: bool = typer.Option(False, "--dry-run",
+                                 help="Show the drafts that would be written without writing"),
+    include_user: bool = typer.Option(False, "--include-user",
+                                      help="Also compile fences from user turns"),
+    library: Path = typer.Option(None, "--library", help="Library root directory"),
+) -> None:
+    """Compile a canonical transcript into draft artifacts under artifacts/drafts/."""
+    config = _resolve_config(library)
+    try:
+        outcome = compile_transcript(config, path, dry_run=dry_run,
+                                     include_user=include_user)
+    except SecretDetected as exc:
+        typer.secho(f"REFUSED: {exc}", fg=typer.colors.RED, err=True)
+        typer.secho("Nothing was written. Remove the credential from the "
+                    "transcript and re-run.", err=True)
+        raise typer.Exit(2)
+    except SoloctlError as exc:
+        typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
+    _render_compile(outcome)
 
 
 @app.command()

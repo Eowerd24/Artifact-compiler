@@ -410,3 +410,176 @@ compiler code only, so AGENTS.md's Stage-2 guardrails aren't engaged.
    `ucc.event`. Resolve that before writing any compile event.
 7. Out of scope until WP5: executing `VerificationPlan`s,
    approval/manual verification, and manifest/index.
+
+---
+
+# Work Package 4 (items 1-3) — compilation coordinator, collisions, accounting
+
+Built on `main` at `28219e4` (WP3 merged). Covers WP3's "Next steps for
+Work Package 4" items 1-3. Items 4-5 (finishing the scaffolded emitters,
+tags/collections) are not started. Item 6 (compile event) is deliberately
+deferred: see the open decision below.
+
+## What was added
+
+- **`soloctl/compiler/compile.py`**: `compile_transcript(config, path, *,
+  dry_run, registry, library_hashes, include_user, compiled_at)` returns a
+  `CompileOutcome` (`drafts`, `skipped`, `unsupported`, `fences_seen`,
+  `accounting`). Each `DraftOutcome` carries the resolved candidate, the
+  emitter name, the absolute and library-relative path, the emitter's
+  original `proposed_filename`, and `written`. The pipeline:
+  1. whole-text secret scan;
+  2. parse the canonical transcript (`parse_transcript`; non-canonical
+     input raises `TranscriptParseError`), then
+     `extract(only=SUPPORTED_LANGUAGES, ...)`, which scans every fence
+     again;
+  3. `registry.assign()`;
+  4. resolve names and render **every** draft in memory;
+  5. accounting self-check;
+  6. write (skipped entirely on dry run).
+  `KIND_DIRS` maps `artifact_type` → `scripts|prompts|runbooks`, here and
+  not in the emitters.
+- **`soloctl compile <transcript> [--dry-run] [--include-user]
+  [--library]`** in `cli.py`: thin, renders the outcome. Exit `2` on a
+  secret, `1` on any other `SoloctlError` (uninitialized library, parse
+  error, emitter configuration error).
+- **`tests/test_compile.py`** (46 tests): coordinator, collisions,
+  accounting, the dry-run/secret/no-event invariants, the contract-free
+  boundary, and the CLI. Suite: 376 → 422.
+
+## Decisions made where the docs were silent or in tension
+
+- **`only=SUPPORTED_LANGUAGES`, not "languages of the enabled emitters".**
+  WP3's notes suggested deriving `only` from the enabled emitters. I didn't,
+  because a fence whose emitter is disabled would then show up as
+  `non-target-lang` ("python not selected"), which hides the cause.
+  Extracting everything and letting `registry.assign()` decide puts those
+  fences in the `unsupported` bucket as `unsupported-emitter` ("enable it
+  in `enabled_emitters`"). It also avoids a hand-kept emitter → language
+  table, since emitters only expose `supports()`. Without this, the
+  `unsupported` term in the accounting would always be zero with the
+  built-in emitters.
+- **Collision resolution goes through the emitter, not around it.** On a
+  collision the coordinator hands the emitter
+  `replace(candidate, name_proposal=f"{name}-{n}")` and asks again. So the
+  emitter keeps its naming rules (Python gives `disk_audit_2.py`), and the
+  header's `name:` line always matches the file it is in. Emitters still
+  know nothing about library state.
+- **A name is "taken" if it exists in `drafts/<kind>/` or
+  `approved/<kind>/`, or was claimed earlier in the same run.** Names are
+  per kind directory: a prompt and a runbook may both be `foo.md`.
+  `revoked/` and `superseded/` are flat and not consulted, since nothing
+  writes there yet. Revisit when approval/revocation lands.
+- **TOCTOU is handled, not just documented.** Writes use
+  `atomic_write_text(..., exist_ok=False)`. If a file appears between
+  planning and writing, the coordinator moves to the next free suffix and
+  re-renders, so another writer's file is never clobbered. Suffixes are
+  capped at `MAX_COLLISION_SUFFIX = 1000`; past that it refuses
+  (`LibraryError`) instead of spinning.
+- **Whole-text secret scan before extraction.** The extractor already
+  refuses on any fence. The coordinator also scans the whole transcript
+  (prose included), like `import` does: D4 is whole-input abort, and
+  descriptions harvested from prose end up in draft headers. It uses the
+  same `library/scrub-patterns.toml` that `import` uses. The scan runs
+  before parsing, because `TranscriptParseError` messages quote the
+  offending front-matter line, and that line could hold the secret.
+- **Render everything, then write.** An emitter error, a secret, an
+  accounting mismatch, or collision exhaustion all leave `artifacts/`
+  byte-identical. A mid-batch I/O failure (disk full) can still leave the
+  earlier drafts in place; they're complete files, never partial, thanks
+  to the atomic writes.
+- **Source strings.** `SourceRef.path` (and the refusal location) is the
+  transcript path relative to the library root when the transcript is
+  inside the library, otherwise the path as given. The header's
+  `source:` is `<transcript.source> [<exported_at>] "<title>"`.
+- **Uninitialized library refuses** (`LibraryError`, "run soloctl init")
+  instead of creating `artifacts/drafts/` on the fly. That holds for dry
+  run too.
+
+## Invariants and how they're enforced
+
+- **Secret refusal before any write**: parametrized over assistant fence,
+  user-turn fence, prose, and unsupported (`yaml`) fence × real/dry. Each
+  asserts the library tree is byte-identical afterwards. A secret in
+  malformed front matter is refused before the parser can quote it.
+- **Dry run writes nothing and appends no event**: whole-tree snapshot
+  before/after. Dry and real runs propose identical paths.
+- **No compile event in either mode**: `events.jsonl` unchanged and
+  `events/artifact-compiler.jsonl` not created after a real compile.
+- **Contract-free core**: an AST check that `compile.py` imports neither
+  `ucc_contracts` nor any edge module (`ucc_events`, `artifact_store`,
+  `artifact_port`, `idempotency_store`, `idempotent_import`), plus a
+  subprocess check that importing `soloctl.compiler.compile` loads none of
+  them transitively. `cli.py` is the edge and still imports `ucc_events`
+  for `import`; that's fine.
+- **Mutation-checked**: each of these was deliberately broken and the
+  suite confirmed to fail, then restored:
+  1. dropping the whole-text scan
+  2. a dry run that writes
+  3. not checking `approved/`
+  4. `exist_ok=True`
+  5. dropping the accounting check
+  6. importing `ucc_events` from `compile.py`
+  7. not tracking intra-run claims
+  8. no race retry
+  9. falling back to the extractor's default `only`
+
+  All 9 were caught.
+
+## Open decision: compile ledger event (WP3 next-step 6) — still open
+
+`compile` appends **no** event, on purpose. Writing one now forces one of
+two bad options:
+- an ad-hoc `lib.compile` legacy-ledger line, which HANDOFF WP2 says not to
+  add before the general envelope exists;
+- or a legacy line *plus* a `ucc.event` dual-write (AGENTS.md §1 event
+  conventions), which couples this path to `ucc_events`/`ucc_contracts`
+  while the event contract is still moving.
+
+So the core pipeline stays contract-free and silent for now. To resolve it,
+someone has to decide:
+1. Does compile get audited before the Phase 20 general ledger envelope,
+   or only after?
+2. If before, what is the `ucc.event` type and subject? Compile creates
+   drafts, which are not S2-1 Artifact records, so there is no real
+   `art_`/`rev_` ID to use, and fail-closed forbids inventing one. The
+   subject would have to be an operation placeholder like the
+   transcript-import one.
+3. Should a real (non-dry) secret refusal during compile be audited, as it
+   is for import (AGENTS.md §3)? Today it isn't, because there's no event
+   at all.
+
+When it's decided, the event call belongs in the CLI/edge layer, or in an
+injected callback, not in `compile.py`, so the core stays contract-free.
+Dry run must keep appending nothing.
+
+## Known limitations (WP4 items 1-3 scope)
+
+- **No library-level dedup.** No hash index exists until manifest/index
+  (WP5). `compile_transcript` accepts `library_hashes` (it's passed to
+  `extract()`), but the CLI passes an empty set. Compiling the same
+  transcript twice therefore writes `-2` drafts. It never overwrites, but
+  it does duplicate. Recovering hashes from rendered drafts would mean
+  stripping emitter-specific headers and preambles, which is fragile, and
+  embedding a hash line would change every emitter's output. Either belongs
+  with the manifest work. Per WP3's limitation, key the index on
+  `(artifact_type, sha256)`.
+- **Drafts are `0600`**, inherited from `tempfile.mkstemp` in
+  `library/atomic.py`, the same as transcripts. They're never executable,
+  as COMPILER_PLAN S3 requires. Approval decides the final mode.
+- **No `--only`/per-emitter CLI selection**; use `enabled_emitters` in
+  `soloctl.toml`. No `--all-revisions` either. The coordinator still
+  handles intra-run name clashes, so adding it later is safe.
+- **Concurrency**: TOCTOU-safe per file, but two concurrent compiles of the
+  same transcript simply produce interleaved suffixes. Single-operator
+  tool; no locking.
+
+## Next steps
+
+1. Resolve the open decision above, then wire the compile event at the
+   edge (real runs only; refusals per the decision).
+2. WP3 next-steps 4-5 are unchanged: finish the scaffolded emitters (real
+   verification plans, language risk patterns), then tags/collections.
+3. WP5: manifest/index, which gives library-level dedup and the
+   `library_hashes` source; verification execution; approval of drafts
+   (and its `revoked/`/`superseded/` collision namespace).
