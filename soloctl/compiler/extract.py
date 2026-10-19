@@ -35,7 +35,7 @@ from .models import ArtifactCandidate, Block, ExtractResult, SkipRecord, SourceR
 __all__ = [
     "SourceRef", "ArtifactCandidate", "Block", "SkipRecord", "ExtractResult",
     "SecretDetected", "SUPPORTED_LANGUAGES", "DEFAULT_ONLY",
-    "extract", "load_risk_patterns",
+    "extract", "load_risk_patterns", "LANG_RISK_PATTERNS",
 ]
 
 SIMILARITY_THRESHOLD = 0.70
@@ -58,6 +58,49 @@ _DEFAULT_RISK: list[tuple[str, re.Pattern[str]]] = [
     ("systemd", re.compile(r"\bsystemctl\b")),
     ("etc-write", re.compile(r"(?:>>?\s*/etc/|\btee\s+(?:-a\s+)?/etc/)")),
 ]
+
+# Language-specific additions: applied on top of the table above, only to
+# fences of that language. Bash has no entry on purpose: the table above *is*
+# the Bash table, and Bash flags must not change. PowerShell and SQL are
+# case-insensitive; DELETE/UPDATE count as "no WHERE" when the statement
+# (from a line start to `;` or the end) never mentions WHERE.
+_I = re.IGNORECASE
+_LANG_RISK: dict[str, list[tuple[str, re.Pattern[str]]]] = {
+    "powershell": [
+        ("remove-recurse-force", re.compile(
+            r"\b(?:Remove-Item|rm|ri|del|erase|rd|rmdir)\b"
+            r"(?=[^\n|;]*\s-r\w*)(?=[^\n|;]*\s-fo\w*)", _I)),
+        ("execution-policy", re.compile(
+            r"\bSet-ExecutionPolicy\b|\s-(?:ExecutionPolicy|ep)\s+(?:Bypass|Unrestricted)\b", _I)),
+        ("invoke-expression", re.compile(r"\b(?:Invoke-Expression|iex)\b", _I)),
+        ("download-execute", re.compile(
+            r"(?:\b(?:Invoke-WebRequest|iwr|Invoke-RestMethod|irm|curl|wget)\b|\.DownloadString\s*\()"
+            r"[^\n]*\|\s*(?:Invoke-Expression|iex)\b"
+            r"|\b(?:Invoke-Expression|iex)\b[^\n]*"
+            r"(?:\.DownloadString\s*\(|\b(?:Invoke-WebRequest|iwr|Invoke-RestMethod|irm)\b)", _I)),
+        ("run-as-admin", re.compile(r"#Requires\s+-RunAsAdministrator\b|-Verb\s+RunAs\b", _I)),
+    ],
+    "sql": [
+        ("drop", re.compile(r"\bDROP\b", _I)),
+        ("truncate", re.compile(r"\bTRUNCATE\b", _I)),
+        ("delete-no-where", re.compile(
+            r"(?:^|;)\s*DELETE\b(?:(?!\bWHERE\b)[^;])*(?:;|\Z)", _I | re.MULTILINE)),
+        ("update-no-where", re.compile(
+            r"(?:^|;)\s*UPDATE\b(?:(?!\bWHERE\b)[^;])*(?:;|\Z)", _I | re.MULTILINE)),
+        ("grant-all", re.compile(r"\bGRANT\s+ALL\b", _I)),
+    ],
+    "python": [
+        ("os-system", re.compile(r"\bos\.(?:system|popen)\s*\(")),
+        ("shell-true", re.compile(r"\bshell\s*=\s*True\b")),
+        ("eval-exec", re.compile(r"(?<![\w.])(?:eval|exec)\s*\(")),
+        ("rmtree", re.compile(r"\brmtree\s*\(")),
+    ],
+}
+
+
+# Public name for the defaults above (callers may pass their own dict as
+# `lang_risk_patterns`); do not mutate it.
+LANG_RISK_PATTERNS = _LANG_RISK
 
 
 def load_risk_patterns(toml_path=None) -> list[tuple[str, re.Pattern[str]]]:
@@ -99,6 +142,14 @@ _COMMENT_RX_BY_LANG: dict[str, re.Pattern[str]] = {
 }
 
 
+# Comment lines that are directives, not names. PowerShell adds `#Requires`
+# (a statement); the default is the WP1 Bash list, unchanged.
+_DEFAULT_SKIP: tuple[str, ...] = ("set ", "shellcheck")
+_COMMENT_NAME_SKIP: dict[str, tuple[str, ...]] = {
+    "powershell": (*_DEFAULT_SKIP, "requires "),
+}
+
+
 def _slugify(text: str, max_len: int = 48) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     return s[:max_len].rstrip("-")
@@ -130,7 +181,7 @@ def _name_from_comment(body: str, lang: str = "bash") -> str | None:
         if line.startswith("#!"):
             continue
         m = rx.match(line)
-        if m and not m.group(1).lower().startswith(("set ", "shellcheck")):
+        if m and not m.group(1).lower().startswith(_COMMENT_NAME_SKIP.get(lang, _DEFAULT_SKIP)):
             return _slugify(m.group(1))
     return None
 
@@ -144,7 +195,8 @@ def extract(text: str, *, source: str = "-",
             include_user: bool = False,
             all_revisions: bool = False,
             scrub_patterns=None,
-            risk_patterns=None) -> ExtractResult:
+            risk_patterns=None,
+            lang_risk_patterns=None) -> ExtractResult:
     only = frozenset(only or DEFAULT_ONLY)
     unknown = only - SUPPORTED_LANGUAGES
     if unknown:
@@ -152,6 +204,7 @@ def extract(text: str, *, source: str = "-",
     scrub = scrub_patterns if scrub_patterns is not None \
         else load_scrub_patterns("/nonexistent")          # -> built-in defaults
     risk = risk_patterns if risk_patterns is not None else list(_DEFAULT_RISK)
+    lang_risk = lang_risk_patterns if lang_risk_patterns is not None else _LANG_RISK
 
     # -- front matter (strip, keep line offset so src lines match the file) --
     offset = 0
@@ -285,7 +338,8 @@ def extract(text: str, *, source: str = "-",
             desc = " / ".join(f["heading_path"])
 
         body_norm = _normalize(f["body"])
-        flags = tuple(l for l, rx in risk if rx.search(f["body"]))
+        flags = tuple(dict.fromkeys(
+            l for l, rx in (*risk, *lang_risk.get(lang, ())) if rx.search(f["body"])))
         blocks_wip.append({
             "lang": lang, "body": f["body"], "body_norm": body_norm,
             "sha256": hashlib.sha256(body_norm.encode()).hexdigest(),

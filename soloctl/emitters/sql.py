@@ -1,13 +1,25 @@
-"""SQL emitter — scaffolded (WP3). Records the dialect from the fence label,
-falling back to soloctl.toml's `default_sql_dialect`; verification is not
-designed yet."""
+"""SQL emitter. Records the dialect from the fence label, falling back to
+soloctl.toml's `default_sql_dialect`.
+
+Verification never connects to a database. The required check is an
+in-process lexical scan soloctl runs itself; a real dialect-aware parse
+needs sqlfluff, which soloctl doesn't depend on, so that check is advisory.
+"""
 from __future__ import annotations
 
 from ..compiler.models import ArtifactCandidate, ArtifactType
 from .base import (
-    EmitContext, VerificationPlan, comment_header, normalize_body,
-    require_supported, scaffold_plan, script_header_rows, slug_filename,
+    ARTIFACT_PATH, EmitContext, VerificationCheck, VerificationPlan,
+    comment_header, normalize_body, require_supported, risk_notes,
+    script_header_rows, slug_filename,
 )
+
+# soloctl dialect name (from a fence label or soloctl.toml) -> sqlfluff's.
+SQLFLUFF_DIALECTS: dict[str, str] = {
+    "postgresql": "postgres", "postgres": "postgres",
+    "mysql": "mysql", "sqlite": "sqlite", "tsql": "tsql", "ansi": "ansi",
+}
+SQLFLUFF_FALLBACK = "ansi"
 
 
 class SqlEmitter:
@@ -41,9 +53,35 @@ class SqlEmitter:
         return f"{comment_header('--', rows)}\n{self.normalize(candidate)}"
 
     def verification_plan(self, candidate: ArtifactCandidate) -> VerificationPlan:
-        require_supported(self, candidate)
-        return scaffold_plan(self.name, self.artifact_type,
-                             "dialect-aware parse (no database connection)")
+        dialect = self.dialect(candidate)
+        fluff = SQLFLUFF_DIALECTS.get((dialect or "").lower(), SQLFLUFF_FALLBACK)
+        notes: tuple[str, ...] = ()
+        if fluff == SQLFLUFF_FALLBACK and (dialect or "").lower() != SQLFLUFF_FALLBACK:
+            notes = (f"dialect {dialect or 'unspecified'!r} has no sqlfluff "
+                     f"mapping; the sqlfluff parse uses {SQLFLUFF_FALLBACK!r}",)
+        return VerificationPlan(
+            emitter=self.name,
+            artifact_type=self.artifact_type,
+            checks=(
+                VerificationCheck(
+                    name="sql-lexical", kind="in-process", required=True,
+                    description="lexical scan without a database: the body "
+                                "below the header has at least one statement; "
+                                "string literals, quoted identifiers and block "
+                                "comments are closed; parentheses balance "
+                                "outside them; the last statement ends with ';' "
+                                "(tsql: or a GO line). Not a parse"),
+                VerificationCheck(
+                    name="sqlfluff-parse", kind="external", required=False,
+                    description=f"dialect-aware parse ({fluff}), no database "
+                                f"connection; advisory because sqlfluff is "
+                                f"not a soloctl dependency",
+                    tool="sqlfluff",
+                    argv=("sqlfluff", "parse", "--dialect", fluff, ARTIFACT_PATH)),
+            ),
+            complete=True,
+            notes=(*notes, *risk_notes(candidate)),
+        )
 
     def executable(self, candidate: ArtifactCandidate) -> bool:
         require_supported(self, candidate)
