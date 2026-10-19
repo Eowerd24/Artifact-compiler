@@ -1,4 +1,4 @@
-# soloctl — Artifact Compiler backend (Work Packages 1-3)
+# soloctl — Artifact Compiler backend (Work Packages 1-4)
 
 Local-first backend that imports chat transcripts, extracts reusable
 artifacts, and now stores minimal canonical script Artifact/Revision/Verification/Approval/Publication records with hash-addressed content. Single operator, no database,
@@ -17,11 +17,15 @@ import adapters, conversation listing/selection (`--list`,
 Work Package 3 adds: a language-neutral extractor (`ArtifactCandidate`
 model; Bash, Python, PowerShell, SQL, prompt, and Markdown runbook fence
 labels), the emitter protocol and registry, full Bash and Python emitters,
-and scaffolded PowerShell/SQL/prompt/runbook emitters. These are importable
-services only — there is no `soloctl compile` command yet and nothing is
-written to `artifacts/drafts/`.
+and scaffolded PowerShell/SQL/prompt/runbook emitters.
 
-Still **not** implemented: the compilation coordinator and draft writes, verification execution, tags, collections, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
+Work Package 4 (items 1-3) adds: the compilation coordinator
+(`soloctl/compiler/compile.py`) and `soloctl compile`, which turns a
+canonical transcript into draft artifacts under
+`artifacts/drafts/{scripts,prompts,runbooks}/`, with collision resolution
+against the library and per-fence accounting.
+
+Still **not** implemented: a compile ledger/`ucc.event`, verification execution, approval of drafts, manifest/index, tags, collections, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
 
 ## Installation
 
@@ -102,6 +106,38 @@ soloctl import export.zip --library ./library --conversation conv-abc123 --dry-r
   event to `library/events.jsonl` — `"result": "ok"` on success,
   `"result": "refused"` if a secret was found.
 
+## `soloctl compile`
+
+Compiles one canonical transcript (the output of `soloctl import`) into
+draft artifacts.
+
+```bash
+soloctl compile library/transcripts/2026/10/forge-provisioning.md --library ./library
+soloctl compile library/transcripts/2026/10/forge-provisioning.md --library ./library --dry-run
+soloctl compile library/transcripts/2026/10/forge-provisioning.md --library ./library --include-user  # also user-turn fences
+```
+
+- Pipeline: parse the canonical transcript → `extract()` every recognized
+  language → `EmitterRegistry.assign()` (from `enabled_emitters`) → render
+  every draft in memory → atomic writes (`library/atomic.py`). The draft
+  directory comes from the artifact type: `script` → `scripts/`, `prompt`
+  → `prompts/`, `runbook` → `runbooks/`.
+- The whole transcript, then every fence, is secret-scanned (built-ins plus
+  `library/scrub-patterns.toml`) before anything is written; a match
+  refuses the entire compile (exit code 2), nothing is saved.
+- Drafts never overwrite anything. If `drafts/<kind>/<name>` or
+  `approved/<kind>/<name>` exists, the draft becomes `<name>-2`, `-3`, ...
+  (Python: `_2`), and its header names the file it is actually in.
+- Every fence is accounted for: `fences: N = drafts + skipped +
+  unsupported`. A fence whose emitter is disabled in `soloctl.toml` shows
+  as `unsupported-emitter`, not as missing.
+- `--dry-run` prints the same plan (same names) and writes nothing.
+- Drafts are written non-executable (mode `0600`).
+- No ledger event is appended yet, in either mode (see `HANDOFF_NOTES.md`,
+  WP4 open decision).
+- No library-level dedup yet: there is no hash index until manifest/index
+  lands, so compiling the same transcript twice writes `-2` drafts.
+
 ## Canonical transcript format
 
 ```markdown
@@ -133,8 +169,8 @@ content — including fenced code blocks — is preserved exactly.
 
 ## Compiler: extraction and emitters (library API, WP3)
 
-No CLI surface yet — the compilation coordinator (Work Package 4) will wire
-these together. Both stages are pure: no file writes, no tool execution.
+`soloctl compile` wires these together (see above). Both stages are pure:
+no file writes, no tool execution — the coordinator owns all file writes.
 
 ```python
 from soloctl.compiler.extract import SUPPORTED_LANGUAGES, extract
