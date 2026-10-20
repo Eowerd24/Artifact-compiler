@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from importlib.resources import files
 from typing import Any
 
-_DIR = Path(__file__).resolve().parent.parent / "transitions"
+_DIR = files("ucc_contracts") / "transitions"
 
 
 class TransitionError(Exception):

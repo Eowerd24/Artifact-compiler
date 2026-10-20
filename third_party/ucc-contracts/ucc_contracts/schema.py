@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from importlib.resources import files
 from typing import Any
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-_SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schemas"
+_SCHEMA_DIR = files("ucc_contracts") / "schemas"
 
 
 class SchemaValidationError(Exception):

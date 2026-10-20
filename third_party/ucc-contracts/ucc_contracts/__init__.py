@@ -24,7 +24,7 @@ from .idempotency import (
     outcome_unknown_problem,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.3.4"
 
 __all__ = [
     "__version__",
