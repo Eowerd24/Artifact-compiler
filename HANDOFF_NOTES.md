@@ -859,7 +859,8 @@ events (items 2-5) are not started. Baseline 583 passed; now 695.
   or a required check is `not-run`/`error`; otherwise `passed`. A failure
   beats incompleteness: a real failure is evidence even in an incomplete
   plan. Advisory results are recorded and never move the verdict.
-- **Plans are rebuilt, not stored.** Compile doesn't persist plans, and
+- **Plans are rebuilt, not stored** (operator-locked 2026-10-20; see
+  "Locked decision" below). Compile doesn't persist plans, and
   compile.py/emitters weren't changed. `plan_for()` picks the one built-in
   emitter whose kind directory and extension produce the ref (among *all*
   built-ins: `enabled_emitters` governs compile, not checking), builds a
@@ -990,7 +991,34 @@ events (items 2-5) are not started. Baseline 583 passed; now 695.
   error, it would read as an advisory pass. Advisory results never decide,
   but this should be confirmed on a machine that has these tools.
 
-## Open decisions flagged (not made here)
+## Locked decision: where `verify` gets its plan (operator, 2026-10-20)
+
+**Approach A, rebuilding the plan at verify time, is locked.** The
+operator chose it over approach B, storing the plan at compile time.
+
+- **Why A**:
+  - compile.py and the emitters stay unchanged;
+  - there's no per-artifact plan file (COMPILER_PLAN D3);
+  - drafts compiled before WP5a can be verified;
+  - only argv from soloctl's own code is ever executed, so a tampered
+    library file can't choose what `verify` runs;
+  - emitter plan fixes reach existing artifacts.
+- **Accepted costs**:
+  - The plan depends on the header's `dialect:`/`risk-flags:` values. The
+    dialect goes through a fixed table, and the flags only affect notes.
+  - It needs a small kind+extension → emitter table and a transient
+    candidate.
+  - Checks can drift from what compile would have promised. The result
+    record stores the checks that actually ran, which preserves the audit
+    trail.
+- **Guard**: `test_rebuilt_plan_equals_the_compile_time_plan`. Any future
+  emitter whose plan reads another candidate field must extend
+  `plan_for()` and that test.
+- **Revisit only if** approval needs to prove the plan an artifact was
+  verified against at compile time. In that case, add a plan fingerprint to
+  the result record rather than storing executable plans.
+
+## Open decisions flagged (not made here; still open after the merge)
 
 1. **S2-1 vs. file results.** S2-1 has canonical `ucc.verification`
    records (`canonical/artifact-compiler/verifications/`, states
@@ -1039,7 +1067,8 @@ events (items 2-5) are not started. Baseline 583 passed; now 695.
 
 ## Next steps
 
-1. Decide open decisions 1-3, then build approval (roadmap step 20) on
+1. Decide open decisions 1-3 (the plan-source question is locked, above),
+   then build approval (roadmap step 20) on
    top. COMPILER_PLAN's "approve refuses while `verify-with` is the
    placeholder" gate and a "latest verification record matches the current
    sha256 and passed" gate are both available now.
