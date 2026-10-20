@@ -138,6 +138,13 @@ class EmitterConfigurationError(EmitterError):
     candidate. An internal configuration bug — never resolved by guessing."""
 
 
+class VerificationError(SoloctlError):
+    """Automatic verification couldn't produce a trustworthy result: the
+    artifact is unreadable or not UTF-8, it changed while checks ran, no
+    built-in emitter produces its kind/extension, or a stored result can't be
+    written. Nothing is recorded; the message says what to fix."""
+
+
 class SecretDetected(SoloctlError):
     """Raised the instant a secret pattern matches. Aborts the whole
     operation before anything is written — refusal, not redaction."""

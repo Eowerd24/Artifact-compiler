@@ -819,3 +819,260 @@ passed; now 583.
    `soloctl.tags/2` can key refs on `(artifact_type, sha256)`.
 5. Resolve the compile-event decision; tag/collection events follow the
    same answer.
+
+---
+
+# Work Package 5a — verification engine (roadmap step 19)
+
+Built on `main` at `05bfb28` (WP4 items 4-5 merged, PR #6). Covers WP4's
+"Next steps for WP5" item 1. Approval, revocation, manifest/index and
+events (items 2-5) are not started. Baseline 583 passed; now 695.
+
+## What was added
+
+- **`soloctl/verification/`**, a new package:
+  - `models.py`: `CheckOutcome`, `CheckResult`, `VerificationReport`, the
+    status and verdict vocabularies, and `MANUAL_NOTE`.
+  - `engine.py`: `run_plan(plan, artifact, *, timeout)` runs every check
+    in plan order and returns a report. `decide()` is the verdict policy.
+    `substitute_path()` does the `ARTIFACT_PATH` substitution.
+    `IN_PROCESS_CHECKS` maps check names to implementations. The engine
+    writes nothing.
+  - `python.py` (`python-ast-parse`), `sql.py` (`sql-lexical`),
+    `markdown.py` (prompt and runbook lints, plus a front-matter parser for
+    soloctl's flat `key: <JSON>` form).
+  - `service.py`: `verify_artifact(config, artifact, *, timeout,
+    verified_at)` resolves the artifact (`library.refs`), rebuilds its plan
+    (`plan_for`), runs it, and writes `verification/<kind>/<filename>.json`.
+- **`soloctl verify <artifact> [--timeout S] [--library]`** in `cli.py`:
+  thin. Exit `0` passed, `5` failed, `6` inconclusive, `1` refused.
+- **`errors.py`**: `VerificationError(SoloctlError)`.
+- **Tests**: `tests/test_verification.py` (112). No existing test changed.
+
+## Decisions made where the docs were silent or in tension
+
+- **Verdict policy (provisional, from the brief; the operator may revise
+  it).** Statuses are `passed`, `failed`, `not-run` (tool not on PATH, or
+  no implementation for an in-process name) and `error` (timeout, exec
+  failure). The verdict is `failed` if a required check failed; otherwise
+  `inconclusive` if the plan is `complete=False`, has no required check,
+  or a required check is `not-run`/`error`; otherwise `passed`. A failure
+  beats incompleteness: a real failure is evidence even in an incomplete
+  plan. Advisory results are recorded and never move the verdict.
+- **Plans are rebuilt, not stored** (operator-locked 2026-10-20; see
+  "Locked decision" below). Compile doesn't persist plans, and
+  compile.py/emitters weren't changed. `plan_for()` picks the one built-in
+  emitter whose kind directory and extension produce the ref (among *all*
+  built-ins: `enabled_emitters` governs compile, not checking), builds a
+  transient candidate from the file (language, type, SQL dialect from
+  `-- dialect:`, risk flags from the header or front matter, body = file
+  text), and calls `verification_plan()`. The candidate's hash fields stay
+  empty rather than invented; plans don't read them. A test compiles 12
+  artifacts under three `default_sql_dialect` settings and asserts each
+  rebuilt plan equals the compile-time plan. SQL is rebuilt with no
+  default dialect, because the header already records the resolved one.
+- **External checks.** `shutil.which(argv[0])`, then
+  `subprocess.run(argv, stdin=DEVNULL, capture_output=True, timeout=…,
+  cwd=<artifact dir>, shell=False)`. argv[0] becomes the resolved
+  executable, so PATH isn't searched twice. `ARTIFACT_PATH` is replaced
+  only in elements equal to it, with the absolute path. Exit 0 is pass and
+  anything else is fail. Output (stdout+stderr) is kept up to 4000 chars.
+  The environment is inherited.
+- **Same bytes for every check.** The engine hashes the file before the
+  first check and after the last; any change refuses the run. The service
+  also refuses if the engine's hash differs from the bytes it built the
+  plan from. Non-UTF-8 files are refused, since soloctl only writes UTF-8.
+- **`sql-lexical` dialect families** come from the header's dialect:
+  `postgres` (dollar quotes, `E''` escapes, nested comments), `mysql`
+  (backslash escapes, backticks, `#` comments), `sqlite` (backticks,
+  brackets), `tsql` (brackets, nested comments, `GO` lines). Unspecified or
+  unmapped dialects get only the standard rules, and failures then carry a
+  "label the fence" hint. Statement count, closure and paren balance are
+  computed outside comments and quoted text, as the description says.
+- **Front matter "well-formed"** means soloctl's own form: every field line
+  is `key: <JSON>`, no duplicate keys, the block is closed, and the keys
+  soloctl writes are present with the right types (strings; `risk-flags`
+  and `placeholders` lists of strings). Blank and `#` comment lines are
+  tolerated. A hand-added plain YAML scalar fails. There's no YAML
+  dependency, and the brief forbids adding one without asking.
+- **Editorial fill-ins**: `TODO`/`TBD`/`FIXME` are matched as upper-case
+  words only (so "a todo list" passes); `[insert …]` and `<insert …>` are
+  case-insensitive. The body is scanned, not the front matter.
+  Placeholder comparison is set-based, using `emitters.prompt.find_placeholders`.
+- **Runbook lints** use `MarkdownIt("commonmark")`, the extractor's parser,
+  on the body below the front matter. "First block is a heading" accepts
+  ATX and setext headings. Only fences are checked; indented code blocks
+  aren't fences.
+- **Bash and PowerShell plans unchanged.** Bash keeps its two required
+  external checks, which fits the policy: without `shellcheck` a Bash
+  artifact is inconclusive. `pwsh-parse` stays advisory, so PowerShell is
+  always inconclusive. Promoting it "where pwsh is present" would make the
+  plan depend on the machine. That is an emitter/policy change for the
+  operator, not an engine change (see open decisions).
+- **Result records**: `library/verification/<kind>/<filename>.json`, schema
+  `soloctl.verification/1` (a local file format, not a `ucc-contracts`
+  schema, so roadmap §2/§8 and standards §17 aren't engaged). Keyed by the
+  same `<kind>/<filename>` ref as tags, so it survives approval moving the
+  file. Each record carries `compiled`, `sha256`, `state`, `verdict`,
+  `reasons`, per-check results and `scope: "automatic"` plus the
+  manual-verification note. Written with `write_json_doc` (atomic,
+  deterministic); the path goes through `LibraryPaths.resolve`. Only the
+  latest run is kept; re-running overwrites it.
+
+## What was verified, not just asserted
+
+- **One focused test per check** (8 in-process checks, each with passing
+  and failing cases), plus the verdict policy, external execution
+  (substitution, hostile content, timeout, truncation, stdin, mid-run
+  change), persistence (atomic-write spy, determinism, symlink escape,
+  refusals write nothing, artifacts and `events.jsonl` byte-identical),
+  plan round-trip, the CLI exit codes, and the contract-free boundary (AST
+  check plus a subprocess import check, the same rule as `compile.py` and
+  `library/tags.py`). AST checks also confirm that only `engine.py` imports
+  `subprocess`, that it calls nothing but `subprocess.run`, with
+  `shell=False`, `stdin` and `timeout`, and that `substitute_path` uses
+  equality, not `format`/`replace`.
+- **Mutation-checked (40/40 caught)**, each broken on purpose in a scratch
+  copy, `tests/test_verification.py` confirmed to fail, then restored:
+  1. substring `replace` of `ARTIFACT_PATH`
+  2. relative path substituted
+  3. `shell=True`
+  4. missing tool counted as passed
+  5. advisory checks deciding
+  6. `complete=False` ignored
+  7. no timeout
+  8. stdin inherited
+  9. unknown in-process check passing
+  10. mid-run change not detected
+  11. engine importing `ucc_events`
+  12. `ast.parse` skipped
+  13. SQL unclosed literal ignored
+  14. unclosed block comment ignored
+  15. open `(` ignored
+  16. stray `)` ignored
+  17. terminator not required
+  18. no-statement accepted
+  19. tsql `GO` not recognized
+  20. dollar quotes ignored
+  21. MySQL backslash escapes ignored
+  22. undeclared placeholder ignored
+  23. unused placeholder ignored
+  24. fill-ins ignored
+  25. fill-in words case-insensitive
+  26. blank prompt body accepted
+  27. missing front-matter key accepted
+  28. wrong kind accepted
+  29. duplicate key accepted
+  30. non-JSON value accepted
+  31. unclosed front matter accepted
+  32. runbook title unchecked
+  33. unlabeled fence ignored
+  34. non-atomic record write
+  35. record path bypassing `resolve`
+  36. rebuilt plan ignoring the header dialect
+  37. rebuilt plan dropping risk flags
+  38. manual note dropped
+  39. plan/check hash mismatch ignored
+  40. inconclusive exiting 0
+
+  The first run caught 38/40. Mutations 20 and 39 were missed: the
+  dollar-quote test body didn't need dollar quoting (an `E''` string
+  masked it), and the service-level hash guard had no test. Both tests were
+  fixed and both mutations are now caught.
+- **End to end**: `init` → `compile` (polyglot fixture) → `verify` on
+  every draft via the CLI. Prompt, runbook, SQL and Python pass; Bash is
+  inconclusive (no shellcheck); PowerShell is inconclusive.
+- **Full suite in an independent fresh clone** of the pushed branch.
+- **Not verified**: `shellcheck`, `ruff`, `sqlfluff` and `pwsh` are still
+  not installed on the build machine. External execution is tested with
+  fake `/bin/sh` tools on an isolated PATH, and with real `bash -n`. So
+  WP4's open questions remain open: whether `-CommandWithArgs` needs pwsh
+  7.4+ and `sqlfluff parse`'s exit codes. If sqlfluff exits 0 on a parse
+  error, it would read as an advisory pass. Advisory results never decide,
+  but this should be confirmed on a machine that has these tools.
+
+## Locked decision: where `verify` gets its plan (operator, 2026-10-20)
+
+**Approach A, rebuilding the plan at verify time, is locked.** The
+operator chose it over approach B, storing the plan at compile time.
+
+- **Why A**:
+  - compile.py and the emitters stay unchanged;
+  - there's no per-artifact plan file (COMPILER_PLAN D3);
+  - drafts compiled before WP5a can be verified;
+  - only argv from soloctl's own code is ever executed, so a tampered
+    library file can't choose what `verify` runs;
+  - emitter plan fixes reach existing artifacts.
+- **Accepted costs**:
+  - The plan depends on the header's `dialect:`/`risk-flags:` values. The
+    dialect goes through a fixed table, and the flags only affect notes.
+  - It needs a small kind+extension → emitter table and a transient
+    candidate.
+  - Checks can drift from what compile would have promised. The result
+    record stores the checks that actually ran, which preserves the audit
+    trail.
+- **Guard**: `test_rebuilt_plan_equals_the_compile_time_plan`. Any future
+  emitter whose plan reads another candidate field must extend
+  `plan_for()` and that test.
+- **Revisit only if** approval needs to prove the plan an artifact was
+  verified against at compile time. In that case, add a plan fingerprint to
+  the result record rather than storing executable plans.
+
+## Open decisions flagged (not made here; still open after the merge)
+
+1. **S2-1 vs. file results.** S2-1 has canonical `ucc.verification`
+   records (`canonical/artifact-compiler/verifications/`, states
+   `not_required|pending|passed|failed|expired`), and README says
+   governance authority is record-based. WP5a's files are filesystem
+   evidence about a draft's bytes, with no `ver_` ID (none is invented,
+   AGENTS.md §1.2) and no bridge to those records. Whether approval reads
+   these files, S2-1 records, or both, and how `inconclusive` maps onto
+   the S2-1 states (there's no equivalent), belongs to the
+   approval-authority decision.
+2. **Verdict policy** is the brief's provisional one. In particular: should
+   a missing tool for a *required* check stay inconclusive, or should Bash
+   move its external checks to advisory like the WP4 rule?
+3. **PowerShell**: should `pwsh-parse` become required (with
+   `complete=True`)? That would make PowerShell verifiable on machines with
+   pwsh 7.4+ and failed/inconclusive elsewhere.
+4. **History**: only the latest run is kept. If approval needs "the
+   verification this approval was based on", keep per-run records, e.g.
+   `verification/<kind>/<filename>/<verified_at>.json`, or embed the sha256
+   in the approval.
+5. **Events**: `verify` appends nothing, by the same reasoning as the
+   compile-event decision (WP4 items 1-3). A verify event would follow
+   that answer.
+
+## Known limitations (WP5a scope)
+
+- `sql-lexical` is lexical by design: it doesn't know keywords, so `SELECT
+  FROM;` passes. MySQL's `--` comments are recognized without the
+  required trailing space. tsql `GO` only counts alone on its line.
+- `python-ast-parse` catches parser errors only. Compiler-stage errors
+  (`return` outside a function, `nonlocal` at module level) pass, as the
+  check's description says.
+- External tools inherit the environment and run in the artifact's
+  directory, so tool config files found from there (e.g. a
+  `pyproject.toml` above the library, or `.shellcheckrc`) apply. ruff's
+  `exclude` could make it skip the file and exit 0. That's advisory, but
+  it's an unverified pass.
+- No sandbox: the roadmap lists `verification/sandbox.py`. Nothing here
+  executes artifact code; every check only parses or lints. A check that
+  runs the artifact would need that sandbox first.
+- `verify` does one artifact per call: no `--all`, no batch over a
+  collection or tag.
+- Concurrent `verify` runs on the same artifact race on the record file;
+  each write is atomic, and the last one wins. Single-operator tool, no
+  locking.
+
+## Next steps
+
+1. Decide open decisions 1-3 (the plan-source question is locked, above),
+   then build approval (roadmap step 20) on
+   top. COMPILER_PLAN's "approve refuses while `verify-with` is the
+   placeholder" gate and a "latest verification record matches the current
+   sha256 and passed" gate are both available now.
+2. Confirm the external tools' exit-code behavior on a machine that has
+   shellcheck, ruff, sqlfluff and pwsh 7.4+.
+3. Revocation/manifest/index and the event decision, as WP4's next steps
+   2-5 describe.

@@ -30,6 +30,8 @@ from .transcript.models import Transcript
 from .transcript.render import render_transcript
 from .transcript.storage import SavedTranscript, preview_transcript_destination, save_transcript
 from .ucc_events import emit_event
+from .verification.engine import DEFAULT_TIMEOUT
+from .verification.service import VerifyOutcome, verify_artifact
 
 app = typer.Typer(no_args_is_help=True, add_completion=False,
                   help="Local-first artifact compiler CLI.")
@@ -41,6 +43,10 @@ app.add_typer(collection_app, name="collection")
 
 SCRUB_PATTERNS_FILENAME = "scrub-patterns.toml"
 T = TypeVar("T")
+
+# `soloctl verify` exit codes beyond 0 (passed) and 1 (refused: nothing ran
+# or was recorded). Distinct from import's 2-4 so scripts can tell them apart.
+VERIFY_EXIT = {"passed": 0, "failed": 5, "inconclusive": 6}
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +226,21 @@ def _render_compile(outcome: CompileOutcome) -> None:
         print("  nothing written (--dry-run)")
 
 
+def _render_verify(outcome: VerifyOutcome) -> None:
+    report = outcome.report
+    print(f"soloctl verify — {outcome.ref} ({outcome.state}, {report.emitter})")
+    for c in report.checks:
+        role = "required" if c.required else "advisory"
+        print(f"  {c.status:<8} {c.name} [{role}, {c.kind}] — {c.detail}")
+    for note in report.plan_notes:
+        print(f"  note: {note}")
+    print(f"  verdict: {report.verdict.upper()}")
+    for reason in report.reasons:
+        print(f"    - {reason}")
+    print(f"  recorded: {outcome.relative_record_path}")
+    print("  automatic verification only; manual verification is separate")
+
+
 def _status(status: str) -> str:
     return "" if status in ("draft", "approved") else f"  ({status.upper()})"
 
@@ -351,6 +372,25 @@ def compile_(
         typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
     _render_compile(outcome)
+
+
+@app.command(name="verify")
+def verify(
+    artifact: str = typer.Argument(..., help="scripts/foo.sh, or the path compile printed"),
+    timeout: float = typer.Option(DEFAULT_TIMEOUT, "--timeout", min=0.1,
+                                  help="Seconds allowed per external check"),
+    library: Path = typer.Option(None, "--library", help="Library root directory"),
+) -> None:
+    """Run an artifact's automatic verification plan and record the result
+    under verification/. Exit 0 passed, 5 failed, 6 inconclusive, 1 refused."""
+    config = _resolve_config(library)
+    try:
+        outcome = verify_artifact(config, artifact, timeout=timeout)
+    except SoloctlError as exc:
+        typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
+    _render_verify(outcome)
+    raise typer.Exit(VERIFY_EXIT[outcome.report.verdict])
 
 
 # --------------------------------------------------------------------------- tag
