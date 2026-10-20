@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-Guidance for Claude Code in this repository. This is the standalone-usable Artifact Compiler on the post-fork S2-1 line
-(`nodectl` / `Artifact-compiler` / `VM-Factory` — this file ships in all three).
+Guidance for Claude Code in this repository. This is the standalone-usable Artifact Compiler on the UCC
+**Stage 3** line, cut from `46b1e96` (`docs/roadmap/STAGE-3-UCC-SCOPE.md`), not this repo's independent `main`.
 
 ## Read these first (authoritative, in precedence order)
 
@@ -9,15 +9,16 @@ Guidance for Claude Code in this repository. This is the standalone-usable Artif
    non-negotiable rules, the event/envelope conventions, and this repo's fenced
    paths, ports, and pending work. **Everything in AGENTS.md applies to you.**
    It is kept as the single source of truth so guidance can't drift between tools.
-2. `docs/roadmap/UCC-Shared-Roadmap-To-Fork.md` — the plan, gates, path to fork (§8).
-3. `docs/reference/UCC-Standards-and-Layout-Reference.md` — the conventions.
+2. `docs/roadmap/STAGE-3-UCC-SCOPE.md` — the active scope and its step gates.
+3. `docs/roadmap/UCC-Shared-Roadmap-To-Fork.md` — the original plan, gates, path to fork (§8).
+4. `docs/reference/UCC-Standards-and-Layout-Reference.md` — the conventions.
 
 If this file or AGENTS.md disagrees with the roadmap/standards, those win. If the
 vendored `ucc-contracts` disagrees with any prose, the code wins.
 
 ## The five things to never get wrong
 
-1. **Stage 2 scope is NARROW** — S2-1 may add AC-owned records and the real in-process `ArtifactPort`; no UCC product, repo merge, broker/network service/server DB, or cross-owner canonical writes. (AGENTS.md §1.1)
+1. **Stage 3 scope is NARROW** — installable on contracts v0.3.4, truthful mutation boundaries, minimal exact-revision handoff; no catalog features, UCC product, repo merge, broker/network service/server DB, or cross-owner canonical writes. (AGENTS.md §1.1)
 2. **Fail closed over fabricate** — refuse with a typed `ucc.problem` rather than
    invent an ID, hash, token, or state. (AGENTS.md §1.2)
 3. **Don't cross the fences** — the standalone-only infra/shell paths listed in
@@ -45,4 +46,4 @@ vendored `ucc-contracts` disagrees with any prose, the code wins.
 
 ## Out of scope
 
-See AGENTS.md §4. S2-1’s AC-owned records and real `ArtifactPort` are authorized; records owned by other modules, unrelated schemas, the projection builder, UCC services, and networked components remain out of scope.
+See AGENTS.md §4 and `docs/roadmap/STAGE-3-UCC-SCOPE.md` §0. Records owned by other modules, local schema changes, the projection builder, UCC services, catalog features, and networked components remain out of scope.

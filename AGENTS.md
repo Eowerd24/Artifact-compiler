@@ -1,7 +1,13 @@
 # AGENTS.md
 
 Guidance for any coding agent (Codex, Claude Code, etc.) working in this repository.
-This is one of three UCC Stage-1 repos: **`nodectl`**, **`Artifact-compiler`**, **`VM-Factory`**.
+This is one of three UCC repos: **`nodectl`**, **`Artifact-compiler`**, **`VM-Factory`**.
+
+> **Stage 3 note (2026-10-20):** this branch is the UCC Stage 3 line, cut from the Stage 2 merge
+> `46b1e9674fe69d990116b66091814f138cd896ed` (decision register D14). It is **not** this repo's
+> current `main`, which carries independent Artifact Compiler development that is out of UCC scope.
+> That work will be reconciled with UCC later, adapting AC to UCC rather than the reverse. Scope:
+> `docs/roadmap/STAGE-3-UCC-SCOPE.md`.
 This copy is trimmed to Artifact-compiler's own block — see the shared `/UCC/AGENTS.md` template
 (one directory up from the three repo clones) for the other two repos' blocks and for what to
 re-sync here if the shared core changes.
@@ -17,12 +23,13 @@ re-sync here if the shared core changes.
 
 ## 0. What this repo is
 
-A standalone-usable Artifact Compiler on the post-fork Stage 2 line. S2-1 additively introduces this owner’s canonical Artifact records and real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: immutable `v0.2.0` plus exact S2-1 development pin `56e2efc6024d9de032350fa061d2ec9a6cedb9a8`, vendored under `third_party/ucc-contracts/` pending the deliberate `v0.3.0` release.
+A standalone-usable Artifact Compiler and the UCC artifact owner. Stage 2 (S2-1, merged 2026-08-30) added this owner’s canonical Artifact/Revision/Verification/Approval/Publication records and the real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: vendored **`ucc-contracts v0.3.0`** under `third_party/ucc-contracts/` (no declared dependency at `46b1e96`). The Stage 3 target is **`v0.3.4`** (D13), adopted in S3-1.
 
-Two documents outrank this file and each other in this order — read them before non-trivial work:
+Three documents outrank this file and each other in this order — read them before non-trivial work:
 
-1. `docs/roadmap/UCC-Shared-Roadmap-To-Fork.md` — the plan, gates, and the path to fork (§8).
-2. `docs/reference/UCC-Standards-and-Layout-Reference.md` — the conventions everything conforms to.
+1. `docs/roadmap/STAGE-3-UCC-SCOPE.md` — the active scope, steps S3-0…S3-4 and their gates.
+2. `docs/roadmap/UCC-Shared-Roadmap-To-Fork.md` — the original plan and gates (historical for the fork).
+3. `docs/reference/UCC-Standards-and-Layout-Reference.md` — the conventions everything conforms to.
 
 **If this file disagrees with those, they win.** If the vendored `ucc-contracts` disagrees with
 any prose, the code wins. Do not re-litigate decisions already locked in the roadmap's decisions
@@ -30,9 +37,9 @@ table (D1–D6) or its conflict-resolution table.
 
 ---
 
-## 1. Stage 2 guardrails — non-negotiable rules
+## 1. Stage 3 guardrails — non-negotiable rules
 
-1. **Stage 2 scope is NARROW.** This repo may implement AC-owned canonical records and its real in-process `ArtifactPort`. Do **not** build the UCC product here, merge repos, add a broker/network service/server database, or write another owner’s canonical root.
+1. **Stage 3 scope is NARROW for this repo** (`docs/roadmap/STAGE-3-UCC-SCOPE.md`): S3-1 an installable package that declares and vendors one contracts release; S3-2 truthful mutation boundaries (typed `OUTCOME_UNKNOWN` for retained `IN_FLIGHT` rows, the caller's context preserved); S3-3 the minimal exact-revision content handoff that the node path needs. Do **not** add catalog features (emitters, tags, collections, provenance graph), build the UCC product here, merge repos, add a broker/network service/server database, or write another owner’s canonical root.
 2. **Fail closed over fabricate.** If you lack a real ID, hash, token, publication state, or
    record, refuse with a typed `ucc.problem` — never invent one. This is the same principle
    behind the vault and dry-run fixes; apply it everywhere, especially in port methods.
@@ -107,10 +114,10 @@ table (D1–D6) or its conflict-resolution table.
   another repo" contract. Distinct from nodectl's now-corrected `backend/ledger.py`, whose header
   used to (falsely) claim exactly that kind of live sync with this file.
 - **Tests:** `pytest`.
-- **Pending:** review and merge the paired S2-1 contracts/Artifact-compiler branches; do not cut or move `v0.3.0` until S2-C is complete.
+- **Pending:** Stage 3 steps S3-1 (installable, contracts v0.3.4) and S3-2 (`IN_FLIGHT` → typed `OUTCOME_UNKNOWN` in `SoloctlArtifactPort._mutation`; reproduced 2026-10-18 and 2026-10-20). S2-1 and the `v0.3.0` release are complete.
 
 ---
 
 ## 4. Out of scope (do not do here)
 
-Canonical records owned by another module; schemas outside the active S2 step; projection builder; UCC application services; broker / network API / server DB; repo merges; multi-operator auth; any general remote terminal in a trusted path; frontend or deployment-topology decisions. These belong to later Stage 2 steps or later roadmaps. If a task seems to require one, stop and flag it against the roadmap.
+Canonical records owned by another module; local schema changes (contracts change upstream only); projection builder; UCC application services; artifact catalog features beyond the proof; broker / network API / server DB; repo merges; multi-operator auth; any general remote terminal in a trusted path; frontend or deployment-topology decisions; merging or consuming this repo's independent `main`. If a task seems to require one, stop and flag it against `docs/roadmap/STAGE-3-UCC-SCOPE.md`.
