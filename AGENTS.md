@@ -114,7 +114,7 @@ table (D1–D6) or its conflict-resolution table.
   another repo" contract. Distinct from nodectl's now-corrected `backend/ledger.py`, whose header
   used to (falsely) claim exactly that kind of live sync with this file.
 - **Tests:** `pytest`.
-- **Pending:** Stage 3 steps S3-1 (installable, contracts v0.3.4) and S3-2 (`IN_FLIGHT` → typed `OUTCOME_UNKNOWN` in `SoloctlArtifactPort._mutation`; reproduced 2026-10-18 and 2026-10-20). S2-1 and the `v0.3.0` release are complete.
+- **Pending:** further S3-2 truthful-boundary work as `docs/roadmap/STAGE-3-UCC-SCOPE.md` sequences it. Done: S3-1 (installable, contracts v0.3.4); S3-2a (`SoloctlArtifactPort._mutation` refuses a retained `unknown` row with typed `OUTCOME_UNKNOWN` and never re-enters the action; `tests/test_artifact_port_in_flight.py`). Not claimed: an atomic record/event commit, or a reconciler for unknown rows.
 
 ---
 

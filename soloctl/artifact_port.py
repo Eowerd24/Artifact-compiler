@@ -123,12 +123,20 @@ class SoloctlArtifactPort:
                     RefusalCode.IDEMPOTENCY_CONFLICT,
                     "idempotency_key was already used with different inputs",
                 )
+            # A retained `unknown` row means an earlier dispatch may have mutated
+            # canonical state: refuse typed and never enter the action again (DC-001).
+            # The shared evaluator reports it as IN_FLIGHT; the REPLAY guard is kept
+            # for a stored record whose own disposition is still unknown.
+            if outcome == IdempotencyOutcome.IN_FLIGHT or (
+                outcome == IdempotencyOutcome.REPLAY
+                and stored is not None
+                and stored.disposition == "unknown"
+            ):
+                return _refusal(
+                    RefusalCode.OUTCOME_UNKNOWN,
+                    "a prior mutation has an unknown outcome; reconcile before retrying",
+                )
             if outcome == IdempotencyOutcome.REPLAY:
-                if stored is not None and stored.disposition == "unknown":
-                    return _refusal(
-                        RefusalCode.OUTCOME_UNKNOWN,
-                        "a prior mutation has an unknown outcome; reconcile before retrying",
-                    )
                 assert stored is not None
                 return _deserialize_result(stored.result)
 
