@@ -1,3 +1,9 @@
+> **Frozen UCC line (2026-10-20).** This branch (`ucc-stage3-base`) was Artifact Compiler's UCC
+> integration line; it continues in the UCC repository `Eowerd24/ucc` (private), under
+> `packages/artifact-compiler/`. It receives security and data-loss fixes only (UCC standalone
+> cutoff policy, decision register D16). Cutoff tag: `ucc-standalone-final` (`7443c0f`).
+> The independent Artifact Compiler product continues separately on `main`.
+
 # soloctl — Artifact Compiler backend (Work Packages 1-2)
 
 Local-first backend that imports chat transcripts, extracts reusable
