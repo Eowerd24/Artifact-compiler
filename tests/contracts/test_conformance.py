@@ -5,7 +5,7 @@ not another repo's domain code — and asserts this repo's schema/ID/transition
 understanding matches the pinned contracts exactly. Mirrors ucc-contracts'
 own test suite structurally so drift between repos is visible immediately.
 
-Pinned version: ucc-contracts 0.1.0 (2026-07-13 snapshot). See
+Pinned version: ucc-contracts 0.3.4 (tag v0.3.4). See
 third_party/ucc-contracts/README.md for the vendoring note.
 """
 from __future__ import annotations
@@ -23,8 +23,10 @@ from ucc_contracts import (
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 VENDORED = REPO_ROOT / "third_party" / "ucc-contracts"
-VALID = VENDORED / "fixtures" / "valid"
-INVALID = VENDORED / "fixtures" / "invalid"
+# v0.3.1+ ship fixtures inside the package (ucc_contracts/fixtures), per the pinned
+# VENDOR-MANIFEST.md; the pre-v0.3.1 root fixtures/ directory no longer exists.
+VALID = VENDORED / "ucc_contracts" / "fixtures" / "valid"
+INVALID = VENDORED / "ucc_contracts" / "fixtures" / "invalid"
 
 VALID_CASES = sorted(p for p in VALID.glob("*.json"))
 INVALID_INDEX = json.loads((INVALID / "_index.json").read_text())

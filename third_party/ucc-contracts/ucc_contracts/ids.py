@@ -23,7 +23,7 @@ ID_PREFIXES: frozenset[str] = frozenset({
     "act", "art", "rev", "ver", "apr", "col", "pub",
     "host", "img", "snap", "node", "nalloc",
     "prj", "job", "asn", "exec", "xfer",
-    "hb", "rpt", "cred", "evt", "op", "req", "res", "corr",
+    "hb", "rpt", "cred", "evt", "op", "req", "res", "corr", "rvw",
 })
 
 _ID_RE = re.compile(r"^(?P<prefix>[a-z][a-z0-9]*)_(?P<ulid>[0-9A-HJKMNP-TV-Z]{26})$")

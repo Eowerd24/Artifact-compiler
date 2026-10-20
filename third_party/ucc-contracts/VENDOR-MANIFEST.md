@@ -2,7 +2,7 @@
 
 A vendored copy of ucc-contracts contains exactly:
 
-  ucc_contracts/     schemas/     fixtures/     transitions/
+  ucc_contracts/     ucc_contracts/schemas/     ucc_contracts/fixtures/     ucc_contracts/transitions/
   pyproject.toml     README.md    VENDOR-MANIFEST.md
 
 Excluded, deliberately:

@@ -1,0 +1,12 @@
+{
+  "schema": "ucc.review",
+  "schema_version": 1,
+  "id": "rvw_01H123456789ABCDEFGHJKMNPQ",
+  "created_at": "2026-08-30T22:50:00.000Z",
+  "created_by": "op_01H123456789ABCDEFGHJKMNPQ",
+  "record_version": 1,
+  "revision_id": "rev_01H123456789ABCDEFGHJKMNPQ",
+  "content_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "review_state": "accepted",
+  "notes": "Looks good"
+}

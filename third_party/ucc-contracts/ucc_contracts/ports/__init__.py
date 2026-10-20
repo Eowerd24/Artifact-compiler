@@ -66,6 +66,7 @@ class EligibilityRequest:
     content_hash: str
     channel: str
     entrypoint: str
+    require_review: bool = False
 
 
 @dataclass(frozen=True)
