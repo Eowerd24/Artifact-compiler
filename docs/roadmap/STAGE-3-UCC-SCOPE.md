@@ -45,7 +45,7 @@ implementation.
 | `Eo-org24/nodectl` | `ucc-integration` @ `ed0f35e` | `v0.3.4` (already) |
 | `Eowerd24/VM-Factory` | `main` @ `d04607f` | `v0.3.0` → `v0.3.4` in S3-1 |
 | `Eowerd24/Artifact-compiler` | `46b1e96` (**not** current `main`) | `v0.3.0` → `v0.3.4` in S3-1 |
-| `Eowerd24/ucc-contracts` | tag `v0.3.4` (no change planned) | — |
+| `Eowerd24/ucc-contracts` | tag `v0.3.5` (= v0.3.4 + optional `ReserveNodeRequest` caller context, OQ-12) | — |
 
 - Each line is a local `stage3-ucc` branch. Delivery is cumulative, order-sensitive
   `git format-patch` series under `outputs/patches/stage3/<repo>/`, each with the six-field

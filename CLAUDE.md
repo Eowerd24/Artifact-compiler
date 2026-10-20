@@ -18,7 +18,7 @@ vendored `ucc-contracts` disagrees with any prose, the code wins.
 
 ## The five things to never get wrong
 
-1. **Stage 3 scope is NARROW** — installable on contracts v0.3.4, truthful mutation boundaries, minimal exact-revision handoff; no catalog features, UCC product, repo merge, broker/network service/server DB, or cross-owner canonical writes. (AGENTS.md §1.1)
+1. **Stage 3 scope is NARROW** — installable on contracts v0.3.5, truthful mutation boundaries, minimal exact-revision handoff; no catalog features, UCC product, repo merge, broker/network service/server DB, or cross-owner canonical writes. (AGENTS.md §1.1)
 2. **Fail closed over fabricate** — refuse with a typed `ucc.problem` rather than
    invent an ID, hash, token, or state. (AGENTS.md §1.2)
 3. **Don't cross the fences** — the standalone-only infra/shell paths listed in

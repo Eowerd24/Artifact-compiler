@@ -11,7 +11,7 @@ def test_tracked_vendor_export_set_is_exact():
         capture_output=True, text=True,
     ).stdout.splitlines()
     relative = [PurePosixPath(path.removeprefix(prefix)) for path in tracked]
-    # Export set as declared by the pinned release's own VENDOR-MANIFEST.md (v0.3.4):
+    # Export set as declared by the pinned release's own VENDOR-MANIFEST.md (v0.3.5):
     # resources live inside the package since the v0.3.1 packaging fix.
     expected = {
         "ucc_contracts", "ucc_contracts/schemas", "ucc_contracts/fixtures",

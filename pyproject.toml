@@ -8,7 +8,7 @@ dependencies = [
     "markdown-it-py>=3.0",
     "jsonschema>=4.20",
     # Shared contracts (D13): the same release vendored under third_party/ucc-contracts.
-    "ucc-contracts @ git+https://github.com/Eowerd24/ucc-contracts.git@v0.3.4",
+    "ucc-contracts @ git+https://github.com/Eowerd24/ucc-contracts.git@v0.3.5",
 ]
 
 [project.optional-dependencies]
