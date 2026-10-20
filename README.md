@@ -1,4 +1,4 @@
-# soloctl — Artifact Compiler backend (Work Packages 1-4)
+# soloctl — Artifact Compiler backend (Work Packages 1-4, 5a)
 
 Local-first backend that imports chat transcripts, extracts reusable
 artifacts, and now stores minimal canonical script Artifact/Revision/Verification/Approval/Publication records with hash-addressed content. Single operator, no database,
@@ -30,7 +30,11 @@ PowerShell, SQL, prompt and runbook emitters, language-specific risk flags
 (PowerShell, SQL, Python), and tags and collections (`soloctl tag`,
 `soloctl collection`).
 
-Still **not** implemented: a compile ledger/`ucc.event`, verification execution, approval of drafts, manifest/index, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
+Work Package 5a adds: the verification engine (`soloctl/verification/`)
+and `soloctl verify`, which runs an artifact's verification plan and
+records the result under `library/verification/`.
+
+Still **not** implemented: a compile ledger/`ucc.event`, approval of drafts, manifest/index, or rich review workflow. S2-1 provides only the minimal explicit create → approve → publish path needed by `ArtifactPort`.
 
 ## Installation
 
@@ -179,6 +183,45 @@ soloctl collection list --library ./library
 - A corrupt `tags.json` or collection file is refused and left as it is.
 - No ledger event is written (same open decision as `compile`).
 
+## `soloctl verify`
+
+Runs an artifact's automatic verification plan (the checks its emitter
+describes) and records the result. Works on drafts and approved artifacts,
+and never changes the artifact file.
+
+```bash
+soloctl verify scripts/disk-audit.sh --library ./library
+soloctl verify artifacts/drafts/prompts/summarize-audit.md --library ./library   # same forms as `tag`
+soloctl verify scripts/largest-tables.sql --timeout 20 --library ./library        # seconds per external check
+```
+
+- Exit codes: `0` passed, `5` failed, `6` inconclusive, `1` refused
+  (unknown or uncompiled artifact, uninitialized library, file changed
+  mid-run). On a refusal nothing is recorded.
+- Verdict (provisional policy): **failed** if any *required* check failed;
+  **inconclusive** if nothing required failed but a pass can't be
+  established (the plan is incomplete, or a required check's tool isn't
+  installed, timed out, or couldn't run); **passed** only if the plan is
+  complete and every required check passed. Advisory checks are recorded
+  but never change the verdict.
+- In-process checks (soloctl runs them itself): `python-ast-parse`,
+  `sql-lexical` (a lexical scan, not a parse), the prompt front-matter/body/
+  placeholder lint, and the runbook front-matter/title/fence-label lint.
+- External tools (`bash`, `shellcheck`, `ruff`, `sqlfluff`, `pwsh`) are
+  never soloctl dependencies. They run from an argv list (no shell) with
+  stdin closed and a timeout, and the artifact's absolute path is the only
+  thing substituted into the argv. Without `shellcheck`, Bash artifacts are
+  inconclusive. PowerShell artifacts are always inconclusive: they have no
+  required check.
+- The result goes to `library/verification/<kind>/<filename>.json`
+  (`soloctl.verification/1`, deterministic JSON, atomic write). Only the
+  latest run is kept. It records the artifact's `compiled:` stamp and the
+  sha256 of the bytes checked, so you can tell whether it still describes
+  the file on disk.
+- Automatic verification never implies manual verification, and `verify`
+  approves nothing. The result file is not an S2-1 `ucc.verification`
+  record and writes no ledger line or event.
+
 ## Canonical transcript format
 
 ```markdown
@@ -308,10 +351,10 @@ This remains a standalone-usable Artifact Compiler, now carrying the additive S2
 python3 -m pytest tests/ -v
 ```
 
-583 tests across configuration, library initialization, transcript
+695 tests across configuration, library initialization, transcript
 render/parse round-tripping, the markdown/ChatGPT/Claude importers, the
 importer registry, extractor regression (converted from the original
 `selftest.py` bare-assert suite, extended for multi-language extraction),
 the emitters and emitter registry, compilation, tags and collections,
-and the UCC contracts/ports. Versioned fixtures live under
+the verification engine, and the UCC contracts/ports. Versioned fixtures live under
 `tests/fixtures/{chatgpt,claude}/v1/`.
