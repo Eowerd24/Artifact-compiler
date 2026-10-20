@@ -101,6 +101,16 @@ class ReserveNodeRequest:
     idempotency_key: str
     reservation_ttl_seconds: int = 600
     preferred_node_id: Optional[str] = None
+    # v0.3.5: caller context for the allocation record and its events. The
+    # controller supplies its own canonical ids (op_/req_/corr_/act_/job_) so the
+    # owner never has to invent them; ucc.node-allocation requires operation_id and
+    # allocated_to. Optional here for compatibility; an owner may refuse a
+    # reservation that lacks the context it needs.
+    operation_id: Optional[str] = None
+    request_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+    actor_id: Optional[str] = None
+    job_id: Optional[str] = None
 
 
 @dataclass(frozen=True)

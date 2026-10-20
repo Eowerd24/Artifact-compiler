@@ -23,7 +23,7 @@ re-sync here if the shared core changes.
 
 ## 0. What this repo is
 
-A standalone-usable Artifact Compiler and the UCC artifact owner. Stage 2 (S2-1, merged 2026-08-30) added this owner’s canonical Artifact/Revision/Verification/Approval/Publication records and the real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: **`ucc-contracts v0.3.4`** (D13), vendored under `third_party/ucc-contracts/` as the exact export set and declared in `pyproject.toml` (S3-1). `46b1e96` vendored `v0.3.0` and declared no dependency.
+A standalone-usable Artifact Compiler and the UCC artifact owner. Stage 2 (S2-1, merged 2026-08-30) added this owner’s canonical Artifact/Revision/Verification/Approval/Publication records and the real in-process `ArtifactPort`; it does not turn this repo into the UCC product. Contract baseline: **`ucc-contracts v0.3.5`** (D13; v0.3.4 adopted in S3-1, v0.3.5 for OQ-12), vendored under `third_party/ucc-contracts/` as the exact export set and declared in `pyproject.toml` (S3-1). `46b1e96` vendored `v0.3.0` and declared no dependency.
 
 Three documents outrank this file and each other in this order — read them before non-trivial work:
 
